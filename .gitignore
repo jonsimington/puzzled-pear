@@ -254,3 +254,7 @@ docs/output
 
 #vagrant
 .vagrant/*
+
+# CLion IDE files
+.idea/
+cmake-build-debug
