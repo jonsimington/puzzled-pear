@@ -1,40 +1,46 @@
 #include "action.hpp"
 
-void Action::execute()
-{
-    m_piece->apply(m_space.rank, m_space.file);
+#include <map>
+
+std::map<std::string, piece_type> piece_type_lookup = {
+        {"Pawn",   PAWN},
+        {"Rook",   ROOK},
+        {"Knight", KNIGHT},
+        {"Bishop", BISHOP},
+        {"Queen",  QUEEN}
+};
+
+void Action::execute() {
+    // Convert location back from zero-indexed
+    m_piece.parent->move(std::string(1,'a' + char(m_space.rank)), m_space.file + 1);
 }
 
-std::vector<Action> BoardModel::available_actions()
-{
+std::vector<Action> BoardModel::available_actions() {
     std::vector<Action> actions;
 
-    for(auto& piece : m_player_pieces)
-    {
-        switch(piece->type)
+    for (auto &piece : m_player_pieces) {
+        if(piece.type == PAWN)
         {
-            case "Pawn":
-                Space space_ahead = piece.location + player.forward;
-                if(is_clear(space_ahead))
-                {
+                Space space_ahead = piece.location + m_forward;
+                if (is_clear(space_ahead)) {
                     actions.push_back(Action(piece, space_ahead));
                 }
 
-                Space attackable_spaces[] = {piece.location + player.forward + one_file,
-                                             piece.location + player.forward - one_file}
+                Space left = {0,-1}, right = {0, 1};
+                Space attack_spaces[] = {piece.location + m_forward + left,
+                                         piece.location + m_forward + right};
                 for (int i = 0; i < 2; i++) {
-                    if(has_opponent_piece(attackable_spaces[i]))
-                    {
-                        actions.push_back(Action(piece, attackable_spaces[i]));
+                    if (has_opponent_piece(attack_spaces[i])) {
+                        actions.push_back(Action(piece, attack_spaces[i]));
                     }
                 }
 
                 // En passant
 
                 // Promotion
-                break;
-            default:
-            std::cout << "Warning: " << piece->type << " moves not yet implemented." << endl;
+        } else
+        {
+            std::cout << "Warning: " << piece.parent->type << " moves not yet implemented." << std::endl;
         }
 
         // Pawns go forward 2 on first move
@@ -55,3 +61,48 @@ std::vector<Action> BoardModel::available_actions()
     return actions;
 }
 
+BoardModel::BoardModel(const cpp_client::chess::Game& game) : m_collision_map() {
+    // If player is white
+    if(game->current_player->id == "0")
+    {
+        m_forward = {1, 0};
+    } else
+    {
+        m_forward = {-1, 0};
+    }
+
+    for (const auto &piece: game->pieces) {
+        PieceModel piecemodel(piece);
+        int rank = piecemodel.location.rank;
+        int file = piecemodel.location.file;
+        m_collision_map[rank][file] = piece_type_lookup[piece->type];
+
+        if (piece->owner->id == game->current_player->id) {
+            m_player_pieces.push_back(piecemodel);
+        } else {
+            m_opponent_pieces.push_back(piecemodel);
+        }
+    }
+}
+
+bool BoardModel::is_clear(const Space& space) {
+    if((space.rank > 7) or (space.rank < 0)
+       or (space.file > 7) or (space.file < 0));
+    return m_collision_map[space.rank][space.file] ? false : true;
+}
+
+bool BoardModel::has_opponent_piece(Space space) {
+    // TODO:
+    return false;
+}
+
+Space operator+(const Space &lhs, const Space &rhs) {
+    return {lhs.rank + rhs.rank, lhs.file + rhs.file};
+}
+
+PieceModel::PieceModel(cpp_client::chess::Piece piece) {
+    parent = piece;
+    type = piece_type_lookup[piece->type];
+    // Convert location to 0-indexed
+    location = {piece->rank - 1, piece->file[0] - 'a'};
+}

@@ -2,7 +2,7 @@
 // This is where you build your AI
 
 #include "ai.hpp"
-//#include "ai/action.hpp"
+#include "ai/action.hpp"
 
 // You can add #includes here for your AI.
 
@@ -67,6 +67,8 @@ bool AI::run_turn()
     // 1) print the board to the console
     print_current_board();
 
+    // 1 and a half) Append to list of previously encountered states
+
     // 2) print the opponent's last move to the console
     if(game->moves.size() > 0)
     {
@@ -86,23 +88,24 @@ bool AI::run_turn()
 
     // 4) Generate Actions
 
-    std::cout << game->fen;
 
     for (auto &&item : player->pieces)
     {
         std::cout << item->type << std::endl;
     }
 
-    // board = BoardModel(game->fen);
-    // std::vector<Action> actions = board.available_actions();
+    BoardModel board(game);
+    auto actions = board.available_actions();
 
     // 5) Pick a random action
-    // Action to_apply = actions[rand() % actions.size()];
-
-    // 6) Apply the action
-    // to_apply.execute();
-
-    return true; // to signify we are done with our turn.
+    if(actions.size() > 0) {
+        auto action = actions[rand() % actions.size()];
+        action.execute();
+        return true; // to signify we are done with our turn.
+    } else
+    {
+        return false; // No actions available
+    }
 }
 
 /// <summary>
