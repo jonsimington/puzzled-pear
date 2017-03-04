@@ -7,12 +7,15 @@ std::map<std::string, piece_type> piece_type_lookup = {
         {"Rook",   ROOK},
         {"Knight", KNIGHT},
         {"Bishop", BISHOP},
-        {"Queen",  QUEEN}
+        {"Queen",  QUEEN},
+        {"King", KING}
 };
 
 void Action::execute() {
     // Convert location back from zero-indexed
-    m_piece.parent->move(std::string(1,'a' + char(m_space.rank)), m_space.file + 1);
+    auto file = std::string(1, 'a' + char(m_space.file));
+    auto rank = m_space.file + 1;
+    m_piece.parent->move(file, rank);
 }
 
 std::vector<Action> BoardModel::available_actions() {
@@ -104,5 +107,7 @@ PieceModel::PieceModel(cpp_client::chess::Piece piece) {
     parent = piece;
     type = piece_type_lookup[piece->type];
     // Convert location to 0-indexed
-    location = {piece->rank - 1, piece->file[0] - 'a'};
+    auto rank = piece->rank;
+    auto file = piece->file;
+    location = {rank - 1, file[0] - 'a'};
 }
