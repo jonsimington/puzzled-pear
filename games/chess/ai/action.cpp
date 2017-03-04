@@ -14,7 +14,7 @@ std::map<std::string, piece_type> piece_type_lookup = {
 void Action::execute() {
     // Convert location back from zero-indexed
     auto file = std::string(1, 'a' + char(m_space.file));
-    auto rank = m_space.file + 1;
+    auto rank = m_space.rank + 1;
     m_piece.parent->move(file, rank);
 }
 
