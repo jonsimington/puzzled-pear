@@ -2,6 +2,7 @@
 // This is where you build your AI
 
 #include "ai.hpp"
+//#include "ai/action.hpp"
 
 // You can add #includes here for your AI.
 
@@ -75,11 +76,31 @@ bool AI::run_turn()
     // 3) print how much time remaining this AI has to calculate moves
     std::cout << "Time Remaining: " << player->time_remaining << " ns" << std::endl;
 
+    /*
     // 4) make a random (and probably invalid) move.
     chess::Piece random_piece = player->pieces[rand() % player->pieces.size()];
     std::string random_file(1, 'a' + rand() % 8);
     int random_rank = (rand() % 8) + 1;
     random_piece->move(random_file, random_rank);
+    */
+
+    // 4) Generate Actions
+
+    std::cout << game->fen;
+
+    for (auto &&item : player->pieces)
+    {
+        std::cout << item->type << std::endl;
+    }
+
+    // board = BoardModel(game->fen);
+    // std::vector<Action> actions = board.available_actions();
+
+    // 5) Pick a random action
+    // Action to_apply = actions[rand() % actions.size()];
+
+    // 6) Apply the action
+    // to_apply.execute();
 
     return true; // to signify we are done with our turn.
 }
