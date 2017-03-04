@@ -87,13 +87,6 @@ bool AI::run_turn()
     */
 
     // 4) Generate Actions
-
-
-    for (auto &&item : player->pieces)
-    {
-        std::cout << item->type << std::endl;
-    }
-
     BoardModel board(game);
     auto actions = board.available_actions();
 
@@ -104,7 +97,8 @@ bool AI::run_turn()
         return true; // to signify we are done with our turn.
     } else
     {
-        return false; // No actions available
+        // return false; // No actions available
+        return true; // Crash the server so we can see that sweet, sweet stack trace
     }
 }
 

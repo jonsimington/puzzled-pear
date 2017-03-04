@@ -15,6 +15,10 @@ enum piece_type {
     PAWN = 1, ROOK, KNIGHT, BISHOP, QUEEN, KING
 };
 
+enum CollisionMapType {
+    EMPTY =0, FRIEND, ENEMY
+};
+
 struct Space {
     int rank;
     int file;
@@ -52,7 +56,7 @@ private:
     bool has_opponent_piece(Space space);
 
     Space m_forward; // Forward means different things to white and black players
-    piece_type m_collision_map[8][8];
+    CollisionMapType m_collision_map[8][8];
     std::vector<PieceModel> m_player_pieces;
     std::vector<PieceModel> m_opponent_pieces;
 

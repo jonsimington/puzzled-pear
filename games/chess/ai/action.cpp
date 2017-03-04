@@ -43,7 +43,7 @@ std::vector<Action> BoardModel::available_actions() {
                 // Promotion
         } else
         {
-            std::cout << "Warning: " << piece.parent->type << " moves not yet implemented." << std::endl;
+            //std::cout << "Warning: " << piece.parent->type << " moves not yet implemented." << std::endl;
         }
 
         // Pawns go forward 2 on first move
@@ -78,25 +78,34 @@ BoardModel::BoardModel(const cpp_client::chess::Game& game) : m_collision_map() 
         PieceModel piecemodel(piece);
         int rank = piecemodel.location.rank;
         int file = piecemodel.location.file;
-        m_collision_map[rank][file] = piece_type_lookup[piece->type];
 
         if (piece->owner->id == game->current_player->id) {
             m_player_pieces.push_back(piecemodel);
+            m_collision_map[rank][file] = FRIEND;
         } else {
             m_opponent_pieces.push_back(piecemodel);
+            m_collision_map[rank][file] = ENEMY;
         }
     }
 }
 
 bool BoardModel::is_clear(const Space& space) {
-    if((space.rank > 7) or (space.rank < 0)
-       or (space.file > 7) or (space.file < 0));
-    return m_collision_map[space.rank][space.file] ? false : true;
+    if ((space.rank > 7) or (space.rank < 0)
+        or (space.file > 7) or (space.file < 0)) {
+        return false;
+    } else {
+        return m_collision_map[space.rank][space.file] == EMPTY;
+    }
 }
 
 bool BoardModel::has_opponent_piece(Space space) {
-    // TODO:
-    return false;
+    if ((space.rank > 7) or (space.rank < 0)
+        or (space.file > 7) or (space.file < 0)) {
+        return false;
+    } else {
+        return m_collision_map[space.rank][space.file] == ENEMY;
+    }
+
 }
 
 Space operator+(const Space &lhs, const Space &rhs) {
