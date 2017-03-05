@@ -67,6 +67,15 @@ void Action::execute() {
     m_piece.parent->move(file, rank);
 }
 
+std::ostream &operator<<(std::ostream &os, const Action &rhs) {
+    os << rhs.m_piece.parent->type
+       << " at " << rhs.m_piece.parent->file << rhs.m_piece.parent->rank << " to ";
+    if(rhs.m_target_piece != 0)
+        os << "capture " << rhs.m_target_piece << " @ ";
+    os << char(rhs.m_space.file + 'a') << rhs.m_space.rank + 1;
+    return os;
+}
+
 std::vector<Action> State::available_actions(int player_id) {
 
     auto possible_actions = all_actions(player_id);
@@ -81,6 +90,10 @@ std::vector<Action> State::available_actions(int player_id) {
         if(new_state.in_check(player_id) == false)
         {
             valid_actions.push_back(action);
+
+        } else
+        {
+            std::cout << "Action " << action << " Discarded because it would put player in check" << std::endl;
         }
     }
 
@@ -111,13 +124,6 @@ void State::straight_line_moves(const PieceModel &piece, std::vector<Space> dire
 State::State(const cpp_client::chess::Game& game) : m_collision_map() {
     // If player is white
     int player_id = game->current_player->id[0] - '0';
-    if(player_id == 0)
-    {
-        m_forward = {1, 0};
-    } else
-    {
-        m_forward = {-1, 0};
-    }
 
     for (const auto &piece: game->pieces) {
         PieceModel piecemodel(piece);
@@ -203,31 +209,36 @@ void State::mutate(const Action& action) {
 
 std::vector<Action> State::all_actions(int player_id) {
     assert(player_id == 0 or player_id == 1);
+
     std::vector<Action> actions;
-    std::vector<Action> valid_actions;
+
+    // maybe forward[player_id] would be better?
+    Space forward = {1, 0};
+    if(player_id == 1) forward = {-1, 0};
 
     for (auto &piece : m_player_pieces[player_id]) {
         if(piece.type == 'P')
         {
             // Regular Moves
             bool in_original_space = (piece.location.rank == PAWN_START_RANK[player_id]);
-            Space space_ahead = piece.location + m_forward;
+            Space space_ahead = piece.location + forward;
             if (is_clear(space_ahead))
             {
                 actions.push_back(Action(piece, space_ahead));
-                if( in_original_space and is_clear(space_ahead + m_forward))
+                if( in_original_space and is_clear(space_ahead + forward))
                 {
-                    actions.push_back(Action(piece, space_ahead + m_forward));
+                    actions.push_back(Action(piece, space_ahead + forward));
                 }
             }
 
             // Attacks
             Space left = {0,-1}, right = {0, 1};
-            Space attack_spaces[] = {piece.location + m_forward + left,
-                                     piece.location + m_forward + right};
+            Space attack_spaces[] = {piece.location + forward + left,
+                                     piece.location + forward + right};
             for (int i = 0; i < 2; i++) {
                 if (has_opponent_piece(attack_spaces[i], player_id)) {
-                    actions.push_back(Action(piece, attack_spaces[i]));
+                    char target = m_collision_map[attack_spaces[i].rank][attack_spaces[i].file];
+                    actions.push_back(Action(piece, attack_spaces[i], target));
                 }
             }
 
@@ -241,7 +252,8 @@ std::vector<Action> State::all_actions(int player_id) {
                 auto space = piece.location + offset;
                 if(is_clear(space) or has_opponent_piece(space, player_id))
                 {
-                    actions.push_back(Action(piece, space));
+                    char target = m_collision_map[space.rank][space.file];
+                    actions.push_back(Action(piece, space, target));
                 }
             }
         } else if (piece.type == 'R')
@@ -260,7 +272,8 @@ std::vector<Action> State::all_actions(int player_id) {
                 Space space = piece.location + direction;
                 if (is_clear(space) or has_opponent_piece(space, player_id))
                 {
-                    actions.push_back(Action(piece, space));
+                    char target = m_collision_map[space.rank][space.file];
+                    actions.push_back(Action(piece, space, target));
                 }
             }
         }

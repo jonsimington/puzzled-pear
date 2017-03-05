@@ -11,6 +11,8 @@
 #include "../../../joueur/src/base_ai.hpp"
 #include "../../../joueur/src/attr_wrapper.hpp"
 
+#include <iostream>
+
 struct Space {
     int rank;
     int file;
@@ -34,6 +36,7 @@ public:
     Space m_space;
     char m_target_piece; // 0 for none
     void execute();
+    friend std::ostream& operator << (std::ostream& os, const Action& rhs);
 };
 
 class State {
@@ -57,8 +60,6 @@ private:
     bool has_opponent_piece(Space space, int player_id);
     // Apply an action in place
     void mutate(const Action& action);
-
-    Space m_forward; // Forward means different things to white and black players
 
     // Just for quick checks. All real operations are on the player pieces vector
     char m_collision_map[8][8];
