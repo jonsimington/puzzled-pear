@@ -2,6 +2,8 @@
 
 #include <map>
 
+// Enums are easier to work with than strings in C++
+// Here's a lookup table to do conversions
 std::map<std::string, piece_type> piece_type_lookup {
         {"Pawn",   PAWN},
         {"Rook",   ROOK},
@@ -11,16 +13,36 @@ std::map<std::string, piece_type> piece_type_lookup {
         {"King", KING}
 };
 
+// Vectors representing piece move offsets
 std::vector<Space> KNIGHT_MOVES {
-        {2,1},
-        {1,2},
-        {-1,2},
-        {-2,1},
-        {-1,-2},
-        {-2,-1},
-        {1,-2},
-        {2,-1}
+        { 2,   1},
+        { 1 ,  2},
+        {-1 ,  2},
+        {-2 ,  1},
+        {-1 , -2},
+        {-2 , -1},
+        { 1 , -2},
+        { 2 , -1}
 };
+
+// And all multiples
+std::vector<Space> BISHOP_MOVES {
+        {-1 , -1},
+        {-1 ,  1},
+        { 1 , -1},
+        { 1 ,  1}
+};
+
+std::vector<Space> ROOK_MOVES {
+        { 1 ,  0},
+        {-1 ,  0},
+        { 0 ,  1},
+        { 0 , -1}
+};
+
+// The Queen is just a combination of Bishop moves and rook moves
+
+// The king is too, but without all multiples enabled
 
 // Accessed as PAWN_START_RANK[player_id]
 int PAWN_START_RANK[] = {1, 6};
@@ -74,6 +96,25 @@ std::vector<Action> State::available_actions(int player_id) {
                     actions.push_back(Action(piece, space));
                 }
             }
+        } else if (piece.type == ROOK)
+        {
+            for(auto& direction : ROOK_MOVES)
+            {
+                Space space = piece.location + direction;
+                while(true)
+                {
+                    if (is_clear(space) or has_opponent_piece(space))
+                    {
+                        actions.push_back(Action(piece, space));
+                    }
+                    if (!is_clear(space)) break;
+                    space = space + direction;
+                }
+            }
+        } else if (piece.type == BISHOP)
+        {
+
+
         }
         else
         {
