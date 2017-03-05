@@ -11,6 +11,17 @@ std::map<std::string, piece_type> piece_type_lookup {
         {"King", KING}
 };
 
+std::vector<Space> KNIGHT_MOVES {
+        {2,1},
+        {1,2},
+        {-1,2},
+        {-2,1},
+        {-1,-2},
+        {-2,-1},
+        {1,-2},
+        {2,-1}
+};
+
 // Accessed as PAWN_START_RANK[player_id]
 int PAWN_START_RANK[] = {1, 6};
 
@@ -53,7 +64,18 @@ std::vector<Action> State::available_actions(int player_id) {
                 // En passant
 
                 // Promotion
-        } else
+        } else if (piece.type == KNIGHT)
+        {
+            for(auto& offset : KNIGHT_MOVES)
+            {
+                auto space = piece.location + offset;
+                if(is_clear(space) or has_opponent_piece(space))
+                {
+                    actions.push_back(Action(piece, space));
+                }
+            }
+        }
+        else
         {
             //std::cout << "Warning: " << piece.parent->type << " moves not yet implemented." << std::endl;
         }
