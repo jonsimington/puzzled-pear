@@ -67,8 +67,6 @@ bool AI::run_turn()
     // 1) print the board to the console
     print_current_board();
 
-    // 1 and a half) Append to list of previously encountered states
-
     // 2) print the opponent's last move to the console
     if(game->moves.size() > 0)
     {
@@ -78,14 +76,6 @@ bool AI::run_turn()
     // 3) print how much time remaining this AI has to calculate moves
     std::cout << "Time Remaining: " << player->time_remaining << " ns" << std::endl;
 
-    /*
-    // 4) make a random (and probably invalid) move.
-    chess::Piece random_piece = player->pieces[rand() % player->pieces.size()];
-    std::string random_file(1, 'a' + rand() % 8);
-    int random_rank = (rand() % 8) + 1;
-    random_piece->move(random_file, random_rank);
-    */
-
     // 4) Generate Actions
     State board(game);
     int player_id = game->current_player->id[0] - '0';
@@ -94,6 +84,7 @@ bool AI::run_turn()
     // 5) Pick a random action
     if(actions.size() > 0) {
         auto action = actions[rand() % actions.size()];
+        //TODO: Print all actions associated with this piece
         assert(action.m_piece.parent->owner->id == game->current_player->id);
         action.execute();
         return true; // to signify we are done with our turn.

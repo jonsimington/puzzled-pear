@@ -13,12 +13,14 @@
 
 #include <iostream>
 
+// Zero-indexed way of representing rank and file
 struct Space {
     int rank;
     int file;
 };
 
-Space operator+(const Space &lhs, const Space &rhs);
+Space operator+ (const Space& lhs, const Space& rhs);
+bool  operator==(const Space& lhs, const Space& rhs);
 
 class PieceModel {
 public:
@@ -30,11 +32,15 @@ public:
 
 class Action {
 public:
-    Action(PieceModel piece, Space space, char target_piece=0)
-            : m_piece(piece), m_space(space), m_target_piece(target_piece) {};
+    Action(PieceModel piece, Space space, char target_piece=0, std::string promotion="")
+            : m_piece(piece),
+              m_space(space),
+              m_target_piece(target_piece),
+              m_promotion(promotion) {};
     PieceModel m_piece;
     Space m_space;
     char m_target_piece; // 0 for none
+    std::string m_promotion;
     void execute();
     friend std::ostream& operator << (std::ostream& os, const Action& rhs);
 };

@@ -3,8 +3,6 @@
 
 #include <map>
 
-// Enums are easier to work with than strings in C++
-// Here's a lookup table to do conversions
 std::map<std::string, char> PIECE_CODE_LOOKUP {
         {"Pawn",   'P'},
         {"Rook",   'R'},
@@ -53,9 +51,12 @@ std::vector<Space> ROYAL_MOVES {
         { 0 , -1}
 };
 
-// The Queen is just a combination of Bishop moves and rook moves
-
-// The king is too, but without all multiples enabled
+std::vector<std::string> POSSIBLE_PROMOTIONS {
+        "Queen",
+        "Bishop",
+        "Knight",
+        "Rook"
+};
 
 // Accessed as PAWN_START_RANK[player_id]
 int PAWN_START_RANK[] = {1, 6};
@@ -64,7 +65,7 @@ void Action::execute() {
     // Convert location back from zero-indexed
     auto file = std::string(1, 'a' + char(m_space.file));
     auto rank = m_space.rank + 1;
-    m_piece.parent->move(file, rank);
+    m_piece.parent->move(file, rank, m_promotion);
 }
 
 std::ostream &operator<<(std::ostream &os, const Action &rhs) {
@@ -202,6 +203,20 @@ void State::mutate(const Action& action) {
         }
     }
 
+    // Handle Pawn Promotion
+    if((action.m_piece.type == 'p' or action.m_piece.type == 'P')
+        and action.m_promotion != "")
+    {
+        for(auto& piece : m_player_pieces[player_id])
+        {
+            if(piece.location == action.m_piece.location)
+            {
+                piece.type = PIECE_CODE_LOOKUP[action.m_promotion];
+                break;
+            }
+        }
+    }
+
     // Update special variables, like en passant and castling
 
     // Update the piece in the list of player pieces
@@ -222,12 +237,21 @@ std::vector<Action> State::all_actions(int player_id) {
             // Regular Moves
             bool in_original_space = (piece.location.rank == PAWN_START_RANK[player_id]);
             Space space_ahead = piece.location + forward;
+            bool can_promote = (space_ahead.rank == 7) or (space_ahead.rank== 0);
             if (is_clear(space_ahead))
             {
-                actions.push_back(Action(piece, space_ahead));
-                if( in_original_space and is_clear(space_ahead + forward))
+                // Promotion
+                if(can_promote)
                 {
-                    actions.push_back(Action(piece, space_ahead + forward));
+                    for(auto& promotion_type : POSSIBLE_PROMOTIONS)
+                    {
+                        actions.push_back(Action(piece, space_ahead, 0, promotion_type));
+                    }
+                } else {
+                    actions.push_back(Action(piece, space_ahead));
+                    if (in_original_space and is_clear(space_ahead + forward)) {
+                        actions.push_back(Action(piece, space_ahead + forward));
+                    }
                 }
             }
 
@@ -242,9 +266,10 @@ std::vector<Action> State::all_actions(int player_id) {
                 }
             }
 
+
             // En passant
 
-            // Promotion
+
         } else if (piece.type == 'N')
         {
             for(auto& offset : KNIGHT_MOVES)
@@ -314,6 +339,10 @@ bool State::in_check(int player_id) {
 
 Space operator+(const Space &lhs, const Space &rhs) {
     return {lhs.rank + rhs.rank, lhs.file + rhs.file};
+}
+
+bool operator==(const Space &lhs, const Space &rhs) {
+    return lhs.rank == rhs.rank && lhs.file == rhs.file;
 }
 
 PieceModel::PieceModel(cpp_client::chess::Piece piece) {
