@@ -40,6 +40,18 @@ std::vector<Space> ROOK_MOVES {
         { 0 , -1}
 };
 
+// King and Queen can move the same directions, just different amounts
+std::vector<Space> ROYAL_MOVES {
+        {-1 , -1},
+        {-1 ,  1},
+        { 1 , -1},
+        { 1 ,  1},
+        { 1 ,  0},
+        {-1 ,  0},
+        { 0 ,  1},
+        { 0 , -1}
+};
+
 // The Queen is just a combination of Bishop moves and rook moves
 
 // The king is too, but without all multiples enabled
@@ -113,12 +125,48 @@ std::vector<Action> State::available_actions(int player_id) {
             }
         } else if (piece.type == BISHOP)
         {
-
-
+            for(auto& direction : BISHOP_MOVES)
+            {
+                Space space = piece.location + direction;
+                while(true)
+                {
+                    if (is_clear(space) or has_opponent_piece(space))
+                    {
+                        actions.push_back(Action(piece, space));
+                    }
+                    if (!is_clear(space)) break;
+                    space = space + direction;
+                }
+            }
+        } else if (piece.type == QUEEN)
+        {
+            for(auto& direction : ROYAL_MOVES)
+            {
+                Space space = piece.location + direction;
+                while(true)
+                {
+                    if (is_clear(space) or has_opponent_piece(space))
+                    {
+                        actions.push_back(Action(piece, space));
+                    }
+                    if (!is_clear(space)) break;
+                    space = space + direction;
+                }
+            }
+        } else if(piece.type == KING)
+        {
+            for(auto& direction: ROYAL_MOVES)
+            {
+                Space space = piece.location + direction;
+                if (is_clear(space) or has_opponent_piece(space))
+                {
+                    actions.push_back(Action(piece, space));
+                }
+            }
         }
         else
         {
-            //std::cout << "Warning: " << piece.parent->type << " moves not yet implemented." << std::endl;
+            std::cout << "Warning: " << piece.parent->type << " moves not yet implemented." << std::endl;
         }
 
         // Pawns go forward 2 on first move
