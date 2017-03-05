@@ -2,7 +2,7 @@
 
 #include <map>
 
-std::map<std::string, piece_type> piece_type_lookup = {
+std::map<std::string, piece_type> piece_type_lookup {
         {"Pawn",   PAWN},
         {"Rook",   ROOK},
         {"Knight", KNIGHT},
@@ -11,6 +11,9 @@ std::map<std::string, piece_type> piece_type_lookup = {
         {"King", KING}
 };
 
+// Accessed as PAWN_START_RANK[player_id]
+int PAWN_START_RANK[] = {1, 6};
+
 void Action::execute() {
     // Convert location back from zero-indexed
     auto file = std::string(1, 'a' + char(m_space.file));
@@ -18,17 +21,26 @@ void Action::execute() {
     m_piece.parent->move(file, rank);
 }
 
-std::vector<Action> BoardModel::available_actions() {
+std::vector<Action> State::available_actions(int player_id) {
     std::vector<Action> actions;
+    //std::vector<Action> valid_actions;
 
-    for (auto &piece : m_player_pieces) {
+    for (auto &piece : m_player_pieces[player_id]) {
         if(piece.type == PAWN)
         {
+                // Regular Moves
+                bool in_original_space = (piece.location.rank == PAWN_START_RANK[player_id]);
                 Space space_ahead = piece.location + m_forward;
-                if (is_clear(space_ahead)) {
+                if (is_clear(space_ahead))
+                {
                     actions.push_back(Action(piece, space_ahead));
+                    if( in_original_space and is_clear(space_ahead + m_forward))
+                    {
+                        actions.push_back(Action(piece, space_ahead + m_forward));
+                    }
                 }
 
+                // Attacks
                 Space left = {0,-1}, right = {0, 1};
                 Space attack_spaces[] = {piece.location + m_forward + left,
                                          piece.location + m_forward + right};
@@ -61,12 +73,27 @@ std::vector<Action> BoardModel::available_actions() {
         // En Passant
     }
 
+    // See if the move would put us in check
+    /*
+    for(auto& action : actions)
+    {
+        // Copy board
+        auto new_state = this->apply(action);
+        // Apply action
+        if(new_state.in_check() == false)
+        {
+            valid_actions.push_back()
+        }
+    }
+     */
+
     return actions;
 }
 
-BoardModel::BoardModel(const cpp_client::chess::Game& game) : m_collision_map() {
+State::State(const cpp_client::chess::Game& game) : m_collision_map() {
     // If player is white
-    if(game->current_player->id == "0")
+    int player_id = game->current_player->id[0] - '0';
+    if(player_id == 0)
     {
         m_forward = {1, 0};
     } else
@@ -79,17 +106,13 @@ BoardModel::BoardModel(const cpp_client::chess::Game& game) : m_collision_map() 
         int rank = piecemodel.location.rank;
         int file = piecemodel.location.file;
 
-        if (piece->owner->id == game->current_player->id) {
-            m_player_pieces.push_back(piecemodel);
-            m_collision_map[rank][file] = FRIEND;
-        } else {
-            m_opponent_pieces.push_back(piecemodel);
-            m_collision_map[rank][file] = ENEMY;
-        }
+        int piece_owner = piece->owner->id[0] - '0';
+        m_player_pieces[piece_owner].push_back(piecemodel);
+        m_collision_map[rank][file] = (piece_owner == player_id) ? FRIEND : ENEMY;
     }
 }
 
-bool BoardModel::is_clear(const Space& space) {
+bool State::is_clear(const Space& space) {
     if ((space.rank > 7) or (space.rank < 0)
         or (space.file > 7) or (space.file < 0)) {
         return false;
@@ -98,7 +121,7 @@ bool BoardModel::is_clear(const Space& space) {
     }
 }
 
-bool BoardModel::has_opponent_piece(Space space) {
+bool State::has_opponent_piece(Space space) {
     if ((space.rank > 7) or (space.rank < 0)
         or (space.file > 7) or (space.file < 0)) {
         return false;
@@ -107,6 +130,24 @@ bool BoardModel::has_opponent_piece(Space space) {
     }
 
 }
+
+/*
+State State::apply(Action action) {
+    State copy = *this;   // I'm hoping and praying that c++ is smart enough
+                          // To generate a default copy constructor that deep copies
+                          // But in my heart I know that this line will break something
+                          // and cost me hours to fix
+    copy.mutate(action);
+    return copy;
+}
+
+void State::mutate(Action action) {
+    // Update the board
+
+
+    // Update the piece in the list of player pieces
+}
+*/
 
 Space operator+(const Space &lhs, const Space &rhs) {
     return {lhs.rank + rhs.rank, lhs.file + rhs.file};

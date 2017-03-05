@@ -36,30 +36,33 @@ public:
 
 class Action {
 public:
-    Action(PieceModel piece, Space &space) : m_piece(piece), m_space(space) {};
+    Action(PieceModel piece, Space space) : m_piece(piece), m_space(space) {};
     PieceModel m_piece;
     Space m_space;
 
     void execute();
 };
 
-class BoardModel {
+class State {
 public:
-    BoardModel(const cpp_client::chess::Game& game);
+    State(const cpp_client::chess::Game& game); // Normal constructor
 
-    std::vector<Action> available_actions();
+    std::vector<Action> available_actions(int player_id);
 
-    void apply(Action action);
+    // Apply an action and return a copy of the board
+    State apply(Action action);
+
+    bool in_check(int player_id);
 
 private:
     bool is_clear(const Space& space);
     bool has_opponent_piece(Space space);
+    // Apply an action in place
+    void mutate(Action action);
 
     Space m_forward; // Forward means different things to white and black players
     CollisionMapType m_collision_map[8][8];
-    std::vector<PieceModel> m_player_pieces;
-    std::vector<PieceModel> m_opponent_pieces;
-
+    std::vector<PieceModel> m_player_pieces[2];
 };
 
 #endif //CPP_CLIENT_ACTION_HPP_H

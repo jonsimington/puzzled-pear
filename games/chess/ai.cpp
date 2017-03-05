@@ -87,12 +87,14 @@ bool AI::run_turn()
     */
 
     // 4) Generate Actions
-    BoardModel board(game);
-    auto actions = board.available_actions();
+    State board(game);
+    int player_id = game->current_player->id[0] - '0';
+    auto actions = board.available_actions(player_id);
 
     // 5) Pick a random action
     if(actions.size() > 0) {
         auto action = actions[rand() % actions.size()];
+        assert(action.m_piece.parent->owner->id == game->current_player->id);
         action.execute();
         return true; // to signify we are done with our turn.
     } else
