@@ -85,6 +85,10 @@ bool AI::run_turn()
     if(actions.size() > 0) {
         auto action = actions[rand() % actions.size()];
         //TODO: Print all actions associated with this piece
+        for(auto& other : actions)
+        {
+
+        }
         assert(action.m_piece.parent->owner->id == game->current_player->id);
         action.execute();
         return true; // to signify we are done with our turn.

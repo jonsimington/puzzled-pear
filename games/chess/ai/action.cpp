@@ -2,6 +2,7 @@
 #include <memory>
 
 #include <map>
+#include <sstream>
 
 std::map<std::string, char> PIECE_CODE_LOOKUP {
         {"Pawn",   'P'},
@@ -57,6 +58,16 @@ std::vector<std::string> POSSIBLE_PROMOTIONS {
         "Knight",
         "Rook"
 };
+
+// Special values for Castling
+const Space WHITE_KINGSIDE_ROOK_START    = {0,7};
+const Space WHITE_KINGSIDE_ROOK_CASTLED  = {0,5};
+const Space WHITE_QUEENSIDE_ROOK_START   = {0,0};
+const Space WHITE_QUEENSIDE_ROOK_CASTLED = {0,3};
+const Space BLACK_KINGSIDE_ROOK_START    = {7,7};
+const Space BLACK_KINGSIDE_ROOK_CASTLED  = {7,5};
+const Space BLACK_QUEENSIDE_ROOK_START   = {7,0};
+const Space BLACK_QUEENSIDE_ROOK_CASLTED = {7,3};
 
 // Accessed as PAWN_START_RANK[player_id]
 int PAWN_START_RANK[] = {1, 6};
@@ -126,6 +137,7 @@ State::State(const cpp_client::chess::Game& game) : m_collision_map() {
     // If player is white
     int player_id = game->current_player->id[0] - '0';
 
+    // Read in pieces
     for (const auto &piece: game->pieces) {
         PieceModel piecemodel(piece);
         int rank = piecemodel.location.rank;
@@ -137,6 +149,30 @@ State::State(const cpp_client::chess::Game& game) : m_collision_map() {
         char piece_code = PIECE_CODE_LOOKUP[piece->type];
         if(piece_owner == 1) piece_code = tolower(piece_code);
         m_collision_map[rank][file] = piece_code;
+    }
+
+    // Read in castling status and En Passant from FEN
+    std::istringstream fen(game->fen);
+    std::string piece_placement, active_color, castling_status, en_passant, clock, move;
+    fen >> piece_placement >> active_color >> castling_status >> en_passant >> clock >> move;
+
+    if(castling_status.find('K') != std::string::npos)
+    {
+        m_castling_status[0] = CASTLE_KINGSIDE;
+    }
+    if(castling_status.find('Q') != std::string::npos)
+    {
+        if(m_castling_status[0] == CASTLE_KINGSIDE) m_castling_status[0] = CASTLE_BOTH;
+        else m_castling_status[0] = CASTLE_QUEENSIDE;
+    }
+    if(castling_status.find('k') != std::string::npos)
+    {
+        m_castling_status[1] = CASTLE_KINGSIDE;
+    }
+    if(castling_status.find('q') != std::string::npos)
+    {
+        if(m_castling_status[1] == CASTLE_KINGSIDE) m_castling_status[0] = CASTLE_BOTH;
+        else m_castling_status[1] = CASTLE_QUEENSIDE;
     }
 }
 
@@ -175,6 +211,14 @@ State State::apply(const Action& action) {
     return copy;
 }
 
+PieceModel* find_piece(std::vector<PieceModel> pieces, Space location) {
+    for (auto &piece : pieces)
+    {
+        if(piece.location == location) return &piece;
+    }
+    return NULL;
+}
+
 void State::mutate(const Action& action) {
     // Update the board
     int player_id  = action.m_piece.parent->owner->id[0] - '0';
@@ -183,6 +227,23 @@ void State::mutate(const Action& action) {
     m_collision_map[from.rank][from.file] = 0;
     char piece_code = player_id == 0 ? action.m_piece.type : tolower(action.m_piece.type);
     m_collision_map[to.rank][to.file] = piece_code;
+
+    // Update the moved piece in the list of player pieces
+    // Searching this list is O(n), but n is small and the alternative
+    // is introducing pointers that point to objects inside STL
+    // containers (could segfault), or making the containers themselves
+    // contain smart pointers and then defining a custom copy operation
+    // that's super careful to get all of the smart pointer objects
+    // deep copied.
+    //
+    // I don't feel like chasing memory leaks right now, so I'll take the hit and
+    // do the O(n) search operation. It's safe. I'll change it if the profiler
+    // starts complaining.
+    //
+    // I miss python. Why am I doing this to myself?
+    PieceModel* piece = find_piece(m_player_pieces[player_id], action.m_piece.location);
+    assert(piece->type == action.m_piece.type);
+    piece->location = action.m_space;
 
     // If the move takes a piece, delete it from the list
     // The collision map doesn't store links,
@@ -217,9 +278,61 @@ void State::mutate(const Action& action) {
         }
     }
 
-    // Update special variables, like en passant and castling
+    // Apply Castling. Should already have been applied to the king, but we
+    // need to get the rook now, too.
+    if(action.m_castle != CASTLE_NONE)
+    {
+        Space rook_start, rook_finish;
+        char rook_symbol = player_id == 0 ? 'R' : 'r';
+        if(action.m_castle == CASTLE_KINGSIDE) {
+            rook_start = player_id == 0 ? WHITE_KINGSIDE_ROOK_START : BLACK_KINGSIDE_ROOK_START;
+            rook_finish = player_id == 0 ? WHITE_KINGSIDE_ROOK_CASTLED : BLACK_KINGSIDE_ROOK_CASTLED;
+        } else if (action.m_castle == CASTLE_QUEENSIDE)
+        {
+            rook_start = player_id == 0 ? WHITE_QUEENSIDE_ROOK_START : BLACK_QUEENSIDE_ROOK_START;
+            rook_finish = player_id == 0 ? WHITE_QUEENSIDE_ROOK_CASTLED : BLACK_QUEENSIDE_ROOK_CASLTED;
+        }
 
-    // Update the piece in the list of player pieces
+        // Update board
+        m_collision_map[rook_start.rank][rook_start.file] = 0;
+        m_collision_map[rook_finish.rank][rook_finish.file] = rook_symbol;
+
+        // Update piece in list
+        PieceModel* rook = find_piece(m_player_pieces[player_id], rook_start);
+        rook->location = rook_finish;
+    }
+
+    // Check if the player can still castle
+    if(m_castling_status[player_id] != CASTLE_NONE)
+    {
+        auto can_castle = m_castling_status[player_id];
+        bool king_moved = action.m_piece.type == 'K';
+        bool kingside_rook_moved, queenside_rook_moved;
+
+        // We can just check if the rooks are in their original spots
+        // If they moved away and back, castling status would have
+        // been disabled, so this is safe.
+        if(player_id == 0)
+        {
+            kingside_rook_moved  = m_collision_map[0][7] != 'R';
+            queenside_rook_moved = m_collision_map[0][0] != 'R';
+        } else {
+            kingside_rook_moved  = m_collision_map[7][0] != 'r';
+            queenside_rook_moved = m_collision_map[7][7] != 'r';
+        }
+        if(    king_moved
+           or (kingside_rook_moved  && (can_castle == CASTLE_KINGSIDE))
+           or (queenside_rook_moved && (can_castle == CASTLE_QUEENSIDE)))
+        {
+            m_castling_status[player_id] = CASTLE_NONE;
+        } else if(can_castle == CASTLE_BOTH )
+        {
+            if(kingside_rook_moved) m_castling_status[player_id] = CASTLE_QUEENSIDE;
+            if(queenside_rook_moved) m_castling_status[player_id] = CASTLE_KINGSIDE;
+        }
+    }
+
+
 }
 
 std::vector<Action> State::all_actions(int player_id) {
@@ -301,21 +414,44 @@ std::vector<Action> State::all_actions(int player_id) {
                     actions.push_back(Action(piece, space, target));
                 }
             }
+
+            //Castling is weird. I'll just hardcode all the locations
+            if(m_castling_status[player_id] != CASTLE_NONE)
+            {
+                int rank = player_id == 0 ? 0 : 7;
+                if(m_castling_status[player_id] == CASTLE_QUEENSIDE
+                   or m_castling_status[player_id] == CASTLE_BOTH)
+                {
+                    bool clear_to_castle = true;
+                    for(int file = 3; file > 0; file --)
+                    {
+                        clear_to_castle &= is_clear(Space{rank,file});
+                    }
+                    if(clear_to_castle)
+                    {
+                        actions.push_back(Action(piece, {rank,2}, 0, "", CASTLE_QUEENSIDE));
+                    }
+                }
+                if(m_castling_status[player_id] == CASTLE_KINGSIDE
+                   or m_castling_status[player_id] == CASTLE_BOTH)
+                {
+                    bool clear_to_castle = true;
+                    for(int file = 3; file > 0; file --)
+                    {
+                        clear_to_castle &= is_clear(Space{rank,file});
+                    }
+                    if(clear_to_castle)
+                    {
+                        actions.push_back(Action(piece, {rank,6}, 0, "", CASTLE_KINGSIDE));
+                    }
+                }
+            }
         }
         else
         {
             std::cout << "Warning: " << piece.parent->type << " moves not yet implemented." << std::endl;
         }
 
-        // Castling
-        /*
-        if(piece->type == "King")
-        {
-            // If king is in original position and hasn't moved
-            // If rook is in original position and hasn't moved
-            // If spaces between king and rook are clear
-        }
-         */
 
         // En Passant
     }

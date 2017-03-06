@@ -13,6 +13,13 @@
 
 #include <iostream>
 
+enum castling_status_type {
+    CASTLE_NONE,
+    CASTLE_KINGSIDE,
+    CASTLE_QUEENSIDE,
+    CASTLE_BOTH
+};
+
 // Zero-indexed way of representing rank and file
 struct Space {
     int rank;
@@ -26,21 +33,28 @@ class PieceModel {
 public:
     PieceModel(cpp_client::chess::Piece piece);
     cpp_client::chess::Piece parent;
-    char type;
+    char type; // Always an uppercase one character piece code
     Space location;
 };
 
 class Action {
 public:
-    Action(PieceModel piece, Space space, char target_piece=0, std::string promotion="")
+    Action(PieceModel piece,
+           Space space,
+           char target_piece=0,
+           std::string promotion="",
+           castling_status_type castle=CASTLE_NONE)
             : m_piece(piece),
               m_space(space),
               m_target_piece(target_piece),
-              m_promotion(promotion) {};
+              m_promotion(promotion),
+              m_castle(castle)
+                 {};
     PieceModel m_piece;
     Space m_space;
     char m_target_piece; // 0 for none
     std::string m_promotion;
+    castling_status_type m_castle;
     void execute();
     friend std::ostream& operator << (std::ostream& os, const Action& rhs);
 };
@@ -68,9 +82,13 @@ private:
     void mutate(const Action& action);
 
     // Just for quick checks. All real operations are on the player pieces vector
+    // Contains piece codes with the same notation as used in the print_board example
+    // White pieces are uppercase, black pieces are lowercase
+    // A null character (0x00) is used for an empty space
     char m_collision_map[8][8];
+    // Arrays of 2 - one for each player
     std::vector<PieceModel> m_player_pieces[2];
-    char m_can_castle[2];
+    castling_status_type m_castling_status[2];
 
     // Calculates all actions allowed by traditional moves of chess
     // Including actions that could put the player in check
