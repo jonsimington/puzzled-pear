@@ -5,3 +5,4 @@
 # If your build fails after adding files, try to build again
 
 ai/action.cpp
+ai/state.cpp

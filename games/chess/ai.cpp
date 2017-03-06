@@ -3,6 +3,7 @@
 
 #include "ai.hpp"
 #include "ai/action.hpp"
+#include "ai/state.hpp"
 
 // You can add #includes here for your AI.
 
