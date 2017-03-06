@@ -91,7 +91,7 @@ bool AI::run_turn()
         {
             if(other.m_piece.parent->id == action.m_piece.parent->id)
             {
-                std::cout << '\t' << action << std::endl;
+                std::cout << '\t' << other << std::endl;
             }
         }
         assert(action.m_piece.parent->owner->id == game->current_player->id);

@@ -9,6 +9,10 @@
 #include <map>
 #include <sstream>
 
+//////////////////////////////////////////////////////////////////////
+///  Lookups for moves & state transitions
+//////////////////////////////////////////////////////////////////////
+
 // Vectors representing piece move offsets
 const std::vector<Space> KNIGHT_MOVES{
     {2, 1},
@@ -77,47 +81,9 @@ const Space NO_EN_PASSANT = {-1, -1};
 // Accessed as PAWN_START_RANK[player_id]
 const int PAWN_START_RANK[] = {1, 6};
 
-std::vector<Action> State::available_actions(int player_id)
-{
-
-    auto possible_actions = all_actions(player_id);
-    std::vector<Action> valid_actions;
-
-    // filter to actions that don't result in going into check
-    for (auto &action : possible_actions) {
-        // Copy board
-        auto new_state = this->apply(action);
-        // Apply action
-        if (new_state.in_check(player_id) == false) {
-            valid_actions.push_back(action);
-
-        }
-        else {
-            //std::cout << "Action " << action << " Discarded because it would put player in check" << std::endl;
-        }
-    }
-
-    return valid_actions;
-}
-
-// Calculates moves in straight lines from the given piece
-// Straight lines are defined as multiples of directions
-// post: Moves added to actions
-void State::straight_line_moves(const PieceModel &piece, std::vector<Space> directions, int player_id,
-                                std::vector<Action> &actions)
-{
-    for (auto &direction : directions) {
-        Space space = piece.location + direction;
-        while (true) {
-            if (is_clear(space) or has_opponent_piece(space, player_id)) {
-                char target_piece = m_collision_map[space.rank][space.file];
-                actions.push_back(Action(piece, space, target_piece));
-            }
-            if (!is_clear(space)) break;
-            space = space + direction;
-        }
-    }
-}
+//////////////////////////////////////////////////////////////////////
+///  Class Implementation
+//////////////////////////////////////////////////////////////////////
 
 State::State(const cpp_client::chess::Game &game)
     : m_collision_map()
@@ -166,34 +132,27 @@ State::State(const cpp_client::chess::Game &game)
     }
 }
 
-bool State::is_clear(const Space &space)
+std::vector<Action> State::available_actions(int player_id)
 {
-    if ((space.rank > 7) or (space.rank < 0)
-        or (space.file > 7) or (space.file < 0)) {
-        return false;
-    }
-    else {
-        return m_collision_map[space.rank][space.file] == 0;
-    }
-}
 
-bool State::has_opponent_piece(Space space, int player_id)
-{
-    if ((space.rank > 7) or (space.rank < 0)
-        or (space.file > 7) or (space.file < 0)) {
-        return false;
-    }
-    else {
-        char piece_code = m_collision_map[space.rank][space.file];
-        // Black's pieces are lowercase, White's pieces are uppercase
-        if (player_id == 0) {
-            return (('a' <= piece_code) and (piece_code <= 'z'));
+    auto possible_actions = all_actions(player_id);
+    std::vector<Action> valid_actions;
+
+    // filter to actions that don't result in going into check
+    for (auto &action : possible_actions) {
+        // Copy board
+        auto new_state = this->apply(action);
+        // Apply action
+        if (new_state.in_check(player_id) == false) {
+            valid_actions.push_back(action);
+
         }
         else {
-            return (('A' <= piece_code) and (piece_code <= 'Z'));
+            //std::cout << "Action " << action << " Discarded because it would put player in check" << std::endl;
         }
     }
 
+    return valid_actions;
 }
 
 State State::apply(const Action &action)
@@ -204,6 +163,128 @@ State State::apply(const Action &action)
     // and cost me hours to fix
     copy.mutate(action);
     return copy;
+}
+
+bool State::in_check(int player_id)
+{
+    auto possible_opponent_actions = all_actions(1 - player_id);
+    bool in_check = false;
+    char king = player_id == 0 ? 'K' : 'k';
+    for (auto &action : possible_opponent_actions) {
+        if (action.m_target_piece == king) {
+            in_check = true;
+            break;
+        }
+    }
+    return in_check;
+}
+std::vector<Action> State::all_actions(int player_id)
+{
+    assert(player_id == 0 or player_id == 1);
+
+    std::vector<Action> actions;
+
+    // maybe forward[player_id] would be better?
+    Space forward = {1, 0};
+    if (player_id == 1) forward = {-1, 0};
+
+    for (auto &piece : m_player_pieces[player_id]) {
+        if (piece.type == 'P') {
+            // Regular Moves
+            bool in_original_space = (piece.location.rank == PAWN_START_RANK[player_id]);
+            Space space_ahead = piece.location + forward;
+            bool can_promote = (space_ahead.rank == 7) or (space_ahead.rank == 0);
+            if (is_clear(space_ahead)) {
+                // Promotion
+                if (can_promote) {
+                    for (auto &promotion_type : POSSIBLE_PROMOTIONS) {
+                        actions.push_back(Action(piece, space_ahead, 0, promotion_type));
+                    }
+                }
+                else {
+                    actions.push_back(Action(piece, space_ahead));
+                    if (in_original_space and is_clear(space_ahead + forward)) {
+                        actions.push_back(Action(piece, space_ahead + forward));
+                    }
+                }
+            }
+
+            // Attacks
+            Space left = {0, -1}, right = {0, 1};
+            Space attack_spaces[] = {piece.location + forward + left,
+                                     piece.location + forward + right};
+            for (int i = 0; i < 2; i++) {
+                if ((has_opponent_piece(attack_spaces[i], player_id))
+                    or attack_spaces[i] == m_en_passant) {
+                    char target = m_collision_map[attack_spaces[i].rank][attack_spaces[i].file];
+                    if (can_promote) {
+                        for (auto &promotion_type : POSSIBLE_PROMOTIONS) {
+                            actions.push_back(Action(piece, attack_spaces[i], target, promotion_type));
+                        }
+                    }
+                    else {
+                        actions.push_back(Action(piece, attack_spaces[i], target));
+                    }
+                }
+            }
+        }
+        else if (piece.type == 'N') {
+            for (auto &offset : KNIGHT_MOVES) {
+                auto space = piece.location + offset;
+                if (is_clear(space) or has_opponent_piece(space, player_id)) {
+                    char target = m_collision_map[space.rank][space.file];
+                    actions.push_back(Action(piece, space, target));
+                }
+            }
+        }
+        else if (piece.type == 'R') {
+            straight_line_moves(piece, ROOK_MOVES, player_id, actions);
+        }
+        else if (piece.type == 'B') {
+            straight_line_moves(piece, BISHOP_MOVES, player_id, actions);
+        }
+        else if (piece.type == 'Q') {
+            straight_line_moves(piece, ROYAL_MOVES, player_id, actions);
+        }
+        else if (piece.type == 'K') {
+            for (auto &direction: ROYAL_MOVES) {
+                Space space = piece.location + direction;
+                if (is_clear(space) or has_opponent_piece(space, player_id)) {
+                    char target = m_collision_map[space.rank][space.file];
+                    actions.push_back(Action(piece, space, target));
+                }
+            }
+
+            //Castling is weird. I'll just hardcode all the locations
+            if (m_castling_status[player_id] != CASTLE_NONE) {
+                int rank = player_id == 0 ? 0 : 7;
+                if (m_castling_status[player_id] == CASTLE_QUEENSIDE
+                    or m_castling_status[player_id] == CASTLE_BOTH) {
+                    bool clear_to_castle = true;
+                    for (int file = 3; file > 0; file--) {
+                        clear_to_castle &= is_clear(Space{rank, file});
+                    }
+                    if (clear_to_castle) {
+                        actions.push_back(Action(piece, {rank, 2}, 0, "", CASTLE_QUEENSIDE));
+                    }
+                }
+                if (m_castling_status[player_id] == CASTLE_KINGSIDE
+                    or m_castling_status[player_id] == CASTLE_BOTH) {
+                    bool clear_to_castle = true;
+                    for (int file = 5; file < 7; file++) {
+                        clear_to_castle &= is_clear(Space{rank, file});
+                    }
+                    if (clear_to_castle) {
+                        actions.push_back(Action(piece, {rank, 6}, 0, "", CASTLE_KINGSIDE));
+                    }
+                }
+            }
+        }
+        else {
+            std::cout << "Warning: " << piece.parent->type << " moves not yet implemented." << std::endl;
+        }
+    }
+    return actions;
 }
 
 void State::mutate(const Action &action)
@@ -357,125 +438,52 @@ void State::mutate(const Action &action)
     }
 }
 
-std::vector<Action> State::all_actions(int player_id)
+bool State::is_clear(const Space &space)
 {
-    assert(player_id == 0 or player_id == 1);
+    if ((space.rank > 7) or (space.rank < 0)
+        or (space.file > 7) or (space.file < 0)) {
+        return false;
+    }
+    else {
+        return m_collision_map[space.rank][space.file] == 0;
+    }
+}
 
-    std::vector<Action> actions;
-
-    // maybe forward[player_id] would be better?
-    Space forward = {1, 0};
-    if (player_id == 1) forward = {-1, 0};
-
-    for (auto &piece : m_player_pieces[player_id]) {
-        if (piece.type == 'P') {
-            // Regular Moves
-            bool in_original_space = (piece.location.rank == PAWN_START_RANK[player_id]);
-            Space space_ahead = piece.location + forward;
-            bool can_promote = (space_ahead.rank == 7) or (space_ahead.rank == 0);
-            if (is_clear(space_ahead)) {
-                // Promotion
-                if (can_promote) {
-                    for (auto &promotion_type : POSSIBLE_PROMOTIONS) {
-                        actions.push_back(Action(piece, space_ahead, 0, promotion_type));
-                    }
-                }
-                else {
-                    actions.push_back(Action(piece, space_ahead));
-                    if (in_original_space and is_clear(space_ahead + forward)) {
-                        actions.push_back(Action(piece, space_ahead + forward));
-                    }
-                }
-            }
-
-            // Attacks
-            Space left = {0, -1}, right = {0, 1};
-            Space attack_spaces[] = {piece.location + forward + left,
-                                     piece.location + forward + right};
-            for (int i = 0; i < 2; i++) {
-                if ((has_opponent_piece(attack_spaces[i], player_id))
-                    or attack_spaces[i] == m_en_passant) {
-                    char target = m_collision_map[attack_spaces[i].rank][attack_spaces[i].file];
-                    if (can_promote) {
-                        for (auto &promotion_type : POSSIBLE_PROMOTIONS) {
-                            actions.push_back(Action(piece, attack_spaces[i], target, promotion_type));
-                        }
-                    }
-                    else {
-                        actions.push_back(Action(piece, attack_spaces[i], target));
-                    }
-                }
-            }
-        }
-        else if (piece.type == 'N') {
-            for (auto &offset : KNIGHT_MOVES) {
-                auto space = piece.location + offset;
-                if (is_clear(space) or has_opponent_piece(space, player_id)) {
-                    char target = m_collision_map[space.rank][space.file];
-                    actions.push_back(Action(piece, space, target));
-                }
-            }
-        }
-        else if (piece.type == 'R') {
-            straight_line_moves(piece, ROOK_MOVES, player_id, actions);
-        }
-        else if (piece.type == 'B') {
-            straight_line_moves(piece, BISHOP_MOVES, player_id, actions);
-        }
-        else if (piece.type == 'Q') {
-            straight_line_moves(piece, ROYAL_MOVES, player_id, actions);
-        }
-        else if (piece.type == 'K') {
-            for (auto &direction: ROYAL_MOVES) {
-                Space space = piece.location + direction;
-                if (is_clear(space) or has_opponent_piece(space, player_id)) {
-                    char target = m_collision_map[space.rank][space.file];
-                    actions.push_back(Action(piece, space, target));
-                }
-            }
-
-            //Castling is weird. I'll just hardcode all the locations
-            if (m_castling_status[player_id] != CASTLE_NONE) {
-                int rank = player_id == 0 ? 0 : 7;
-                if (m_castling_status[player_id] == CASTLE_QUEENSIDE
-                    or m_castling_status[player_id] == CASTLE_BOTH) {
-                    bool clear_to_castle = true;
-                    for (int file = 3; file > 0; file--) {
-                        clear_to_castle &= is_clear(Space{rank, file});
-                    }
-                    if (clear_to_castle) {
-                        actions.push_back(Action(piece, {rank, 2}, 0, "", CASTLE_QUEENSIDE));
-                    }
-                }
-                if (m_castling_status[player_id] == CASTLE_KINGSIDE
-                    or m_castling_status[player_id] == CASTLE_BOTH) {
-                    bool clear_to_castle = true;
-                    for (int file = 5; file < 7; file++) {
-                        clear_to_castle &= is_clear(Space{rank, file});
-                    }
-                    if (clear_to_castle) {
-                        actions.push_back(Action(piece, {rank, 6}, 0, "", CASTLE_KINGSIDE));
-                    }
-                }
-            }
+bool State::has_opponent_piece(Space space, int player_id)
+{
+    if ((space.rank > 7) or (space.rank < 0)
+        or (space.file > 7) or (space.file < 0)) {
+        return false;
+    }
+    else {
+        char piece_code = m_collision_map[space.rank][space.file];
+        // Black's pieces are lowercase, White's pieces are uppercase
+        if (player_id == 0) {
+            return (('a' <= piece_code) and (piece_code <= 'z'));
         }
         else {
-            std::cout << "Warning: " << piece.parent->type << " moves not yet implemented." << std::endl;
+            return (('A' <= piece_code) and (piece_code <= 'Z'));
         }
     }
-    return actions;
+
 }
 
-bool State::in_check(int player_id)
+void State::straight_line_moves(const PieceModel &piece, std::vector<Space> directions, int player_id,
+                                std::vector<Action> &actions)
 {
-    auto possible_opponent_actions = all_actions(1 - player_id);
-    bool in_check = false;
-    char king = player_id == 0 ? 'K' : 'k';
-    for (auto &action : possible_opponent_actions) {
-        if (action.m_target_piece == king) {
-            in_check = true;
-            break;
+    for (auto &direction : directions) {
+        Space space = piece.location + direction;
+        while (true) {
+            if (is_clear(space) or has_opponent_piece(space, player_id)) {
+                char target_piece = m_collision_map[space.rank][space.file];
+                actions.push_back(Action(piece, space, target_piece));
+            }
+            if (!is_clear(space)) break;
+            space = space + direction;
         }
     }
-    return in_check;
 }
+
+
+
+
