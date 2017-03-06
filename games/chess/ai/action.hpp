@@ -89,6 +89,7 @@ private:
     // Arrays of 2 - one for each player
     std::vector<PieceModel> m_player_pieces[2];
     castling_status_type m_castling_status[2];
+    Space m_en_passant;
 
     // Calculates all actions allowed by traditional moves of chess
     // Including actions that could put the player in check

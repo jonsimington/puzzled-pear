@@ -105,7 +105,7 @@ std::vector<Action> State::available_actions(int player_id) {
 
         } else
         {
-            std::cout << "Action " << action << " Discarded because it would put player in check" << std::endl;
+            //std::cout << "Action " << action << " Discarded because it would put player in check" << std::endl;
         }
     }
 
@@ -173,6 +173,15 @@ State::State(const cpp_client::chess::Game& game) : m_collision_map() {
     {
         if(m_castling_status[1] == CASTLE_KINGSIDE) m_castling_status[0] = CASTLE_BOTH;
         else m_castling_status[1] = CASTLE_QUEENSIDE;
+    }
+
+    if(en_passant == "-")
+    {
+        m_en_passant = {-1,-1};
+    } else{
+        int file = en_passant[0] - 'a';
+        int rank = en_passant[1] - 1;
+        m_en_passant = {rank, file};
     }
 }
 
@@ -379,7 +388,8 @@ std::vector<Action> State::all_actions(int player_id) {
             Space attack_spaces[] = {piece.location + forward + left,
                                      piece.location + forward + right};
             for (int i = 0; i < 2; i++) {
-                if (has_opponent_piece(attack_spaces[i], player_id)) {
+                if ( (has_opponent_piece(attack_spaces[i], player_id))
+                        or attack_spaces[i] == m_en_passant) {
                     char target = m_collision_map[attack_spaces[i].rank][attack_spaces[i].file];
                     if(can_promote)
                     {
