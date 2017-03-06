@@ -1,5 +1,4 @@
 #include "action.hpp"
-#include <memory>
 
 #include <map>
 #include <sstream>
@@ -136,9 +135,6 @@ void State::straight_line_moves(const PieceModel &piece, std::vector<Space> dire
 }
 
 State::State(const cpp_client::chess::Game& game) : m_collision_map() {
-    // If player is white
-    int player_id = game->current_player->id[0] - '0';
-
     // Read in pieces
     for (const auto &piece: game->pieces) {
         PieceModel piecemodel(piece);
@@ -149,7 +145,7 @@ State::State(const cpp_client::chess::Game& game) : m_collision_map() {
         m_player_pieces[piece_owner].push_back(piecemodel);
 
         char piece_code = PIECE_CODE_LOOKUP[piece->type];
-        if(piece_owner == 1) piece_code = tolower(piece_code);
+        if(piece_owner == 1) piece_code = char(tolower(piece_code));
         m_collision_map[rank][file] = piece_code;
     }
 
@@ -228,7 +224,7 @@ void State::mutate(const Action& action) {
     const Space &from = action.m_piece.location;
     const Space &to = action.m_space;
     m_collision_map[from.rank][from.file] = 0;
-    char piece_code = player_id == 0 ? action.m_piece.type : tolower(action.m_piece.type);
+    char piece_code = player_id == 0 ? action.m_piece.type : char(tolower(action.m_piece.type));
     m_collision_map[to.rank][to.file] = piece_code;
 
     // Update the moved piece in the list of player pieces
@@ -284,6 +280,7 @@ void State::mutate(const Action& action) {
     if (action.m_castle != CASTLE_NONE) {
         Space rook_start, rook_finish;
         char rook_symbol = player_id == 0 ? 'R' : 'r';
+        assert(action.m_castle == CASTLE_KINGSIDE or action.m_castle == CASTLE_QUEENSIDE);
         if (action.m_castle == CASTLE_KINGSIDE) {
             rook_start = player_id == 0 ? WHITE_KINGSIDE_ROOK_START : BLACK_KINGSIDE_ROOK_START;
             rook_finish = player_id == 0 ? WHITE_KINGSIDE_ROOK_CASTLED : BLACK_KINGSIDE_ROOK_CASTLED;
@@ -297,7 +294,6 @@ void State::mutate(const Action& action) {
         m_collision_map[rook_finish.rank][rook_finish.file] = rook_symbol;
 
         // Update piece in list
-
         for (auto &piece : m_player_pieces[player_id]) {
             if (piece.location == rook_start) {
                 piece.location = rook_finish;

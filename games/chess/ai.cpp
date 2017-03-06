@@ -84,7 +84,6 @@ bool AI::run_turn()
     // 5) Pick a random action
     if(actions.size() > 0) {
         auto action = actions[rand() % actions.size()];
-        //TODO: Print all actions associated with this piece
         std::cout << "Selected Action: " << action << std::endl;
         std::cout << "Other actions associated with this piece: " << std::endl;
         for(auto& other : actions)
