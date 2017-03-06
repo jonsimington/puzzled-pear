@@ -178,7 +178,7 @@ State::State(const cpp_client::chess::Game& game) : m_collision_map() {
         m_en_passant = NO_EN_PASSANT;
     } else{
         int file = en_passant[0] - 'a';
-        int rank = en_passant[1] - 1;
+        int rank = en_passant[1] - '1';
         m_en_passant = {rank, file};
     }
 }
