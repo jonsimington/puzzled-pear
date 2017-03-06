@@ -211,14 +211,6 @@ State State::apply(const Action& action) {
     return copy;
 }
 
-PieceModel* find_piece(std::vector<PieceModel> pieces, Space location) {
-    for (auto &piece : pieces)
-    {
-        if(piece.location == location) return &piece;
-    }
-    return NULL;
-}
-
 void State::mutate(const Action& action) {
     // Update the board
     int player_id  = action.m_piece.parent->owner->id[0] - '0';
@@ -241,9 +233,15 @@ void State::mutate(const Action& action) {
     // starts complaining.
     //
     // I miss python. Why am I doing this to myself?
-    PieceModel* piece = find_piece(m_player_pieces[player_id], action.m_piece.location);
-    assert(piece->type == action.m_piece.type);
-    piece->location = action.m_space;
+    for (auto &piece : m_player_pieces[player_id])
+    {
+        if(piece.location == action.m_piece.location)
+        {
+            piece.location = action.m_space;
+            assert(piece.type == action.m_piece.type);
+            break;
+        }
+    }
 
     // If the move takes a piece, delete it from the list
     // The collision map doesn't store links,
@@ -298,8 +296,16 @@ void State::mutate(const Action& action) {
         m_collision_map[rook_finish.rank][rook_finish.file] = rook_symbol;
 
         // Update piece in list
-        PieceModel* rook = find_piece(m_player_pieces[player_id], rook_start);
-        rook->location = rook_finish;
+
+        for (auto &piece : m_player_pieces[player_id])
+        {
+            if(piece.location == rook_start)
+            {
+                piece.location = rook_finish;
+                assert(piece.type == 'R');
+                break;
+            }
+        }
     }
 
     // Check if the player can still castle
@@ -375,7 +381,15 @@ std::vector<Action> State::all_actions(int player_id) {
             for (int i = 0; i < 2; i++) {
                 if (has_opponent_piece(attack_spaces[i], player_id)) {
                     char target = m_collision_map[attack_spaces[i].rank][attack_spaces[i].file];
-                    actions.push_back(Action(piece, attack_spaces[i], target));
+                    if(can_promote)
+                    {
+                        for(auto& promotion_type : POSSIBLE_PROMOTIONS)
+                        {
+                            actions.push_back(Action(piece, attack_spaces[i], target, promotion_type));
+                        }
+                    } else {
+                        actions.push_back(Action(piece, attack_spaces[i], target));
+                    }
                 }
             }
 
@@ -436,7 +450,7 @@ std::vector<Action> State::all_actions(int player_id) {
                    or m_castling_status[player_id] == CASTLE_BOTH)
                 {
                     bool clear_to_castle = true;
-                    for(int file = 3; file > 0; file --)
+                    for(int file = 5; file <7; file ++)
                     {
                         clear_to_castle &= is_clear(Space{rank,file});
                     }
