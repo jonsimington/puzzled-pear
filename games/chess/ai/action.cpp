@@ -69,6 +69,8 @@ const Space BLACK_KINGSIDE_ROOK_CASTLED  = {7,5};
 const Space BLACK_QUEENSIDE_ROOK_START   = {7,0};
 const Space BLACK_QUEENSIDE_ROOK_CASLTED = {7,3};
 
+const Space NO_EN_PASSANT = {-1,-1};
+
 // Accessed as PAWN_START_RANK[player_id]
 int PAWN_START_RANK[] = {1, 6};
 
@@ -177,7 +179,7 @@ State::State(const cpp_client::chess::Game& game) : m_collision_map() {
 
     if(en_passant == "-")
     {
-        m_en_passant = {-1,-1};
+        m_en_passant = NO_EN_PASSANT;
     } else{
         int file = en_passant[0] - 'a';
         int rank = en_passant[1] - 1;
@@ -222,9 +224,9 @@ State State::apply(const Action& action) {
 
 void State::mutate(const Action& action) {
     // Update the board
-    int player_id  = action.m_piece.parent->owner->id[0] - '0';
-    const Space& from = action.m_piece.location;
-    const Space& to   = action.m_space;
+    int player_id = action.m_piece.parent->owner->id[0] - '0';
+    const Space &from = action.m_piece.location;
+    const Space &to = action.m_space;
     m_collision_map[from.rank][from.file] = 0;
     char piece_code = player_id == 0 ? action.m_piece.type : tolower(action.m_piece.type);
     m_collision_map[to.rank][to.file] = piece_code;
@@ -242,10 +244,8 @@ void State::mutate(const Action& action) {
     // starts complaining.
     //
     // I miss python. Why am I doing this to myself?
-    for (auto &piece : m_player_pieces[player_id])
-    {
-        if(piece.location == action.m_piece.location)
-        {
+    for (auto &piece : m_player_pieces[player_id]) {
+        if (piece.location == action.m_piece.location) {
             piece.location = action.m_space;
             assert(piece.type == action.m_piece.type);
             break;
@@ -257,13 +257,10 @@ void State::mutate(const Action& action) {
     // so we have to iterate through the opponent's pieces until we find the
     // right one. In practice this isn't a problem because there are never more
     // than 16 opponent pieces, which is a small number.
-    if(action.m_target_piece != 0)
-    {
-        for(int i = 0; i < m_player_pieces[player_id].size() - 1; i++)
-        {
-            auto& piece = m_player_pieces[player_id][i];
-            if(piece.location.rank == to.rank && piece.location.file == to.file)
-            {
+    if (action.m_target_piece != 0) {
+        for (int i = 0; i < m_player_pieces[player_id].size() - 1; i++) {
+            auto &piece = m_player_pieces[player_id][i];
+            if (piece.location.rank == to.rank && piece.location.file == to.file) {
                 // Delete the piece from the list
                 m_player_pieces[player_id].erase(m_player_pieces[player_id].begin() + i);
                 break;
@@ -272,13 +269,10 @@ void State::mutate(const Action& action) {
     }
 
     // Handle Pawn Promotion
-    if((action.m_piece.type == 'p' or action.m_piece.type == 'P')
-        and action.m_promotion != "")
-    {
-        for(auto& piece : m_player_pieces[player_id])
-        {
-            if(piece.location == action.m_piece.location)
-            {
+    if ((action.m_piece.type == 'p' or action.m_piece.type == 'P')
+        and action.m_promotion != "") {
+        for (auto &piece : m_player_pieces[player_id]) {
+            if (piece.location == action.m_piece.location) {
                 piece.type = PIECE_CODE_LOOKUP[action.m_promotion];
                 break;
             }
@@ -287,15 +281,13 @@ void State::mutate(const Action& action) {
 
     // Apply Castling. Should already have been applied to the king, but we
     // need to get the rook now, too.
-    if(action.m_castle != CASTLE_NONE)
-    {
+    if (action.m_castle != CASTLE_NONE) {
         Space rook_start, rook_finish;
         char rook_symbol = player_id == 0 ? 'R' : 'r';
-        if(action.m_castle == CASTLE_KINGSIDE) {
+        if (action.m_castle == CASTLE_KINGSIDE) {
             rook_start = player_id == 0 ? WHITE_KINGSIDE_ROOK_START : BLACK_KINGSIDE_ROOK_START;
             rook_finish = player_id == 0 ? WHITE_KINGSIDE_ROOK_CASTLED : BLACK_KINGSIDE_ROOK_CASTLED;
-        } else if (action.m_castle == CASTLE_QUEENSIDE)
-        {
+        } else if (action.m_castle == CASTLE_QUEENSIDE) {
             rook_start = player_id == 0 ? WHITE_QUEENSIDE_ROOK_START : BLACK_QUEENSIDE_ROOK_START;
             rook_finish = player_id == 0 ? WHITE_QUEENSIDE_ROOK_CASTLED : BLACK_QUEENSIDE_ROOK_CASLTED;
         }
@@ -306,10 +298,8 @@ void State::mutate(const Action& action) {
 
         // Update piece in list
 
-        for (auto &piece : m_player_pieces[player_id])
-        {
-            if(piece.location == rook_start)
-            {
+        for (auto &piece : m_player_pieces[player_id]) {
+            if (piece.location == rook_start) {
                 piece.location = rook_finish;
                 assert(piece.type == 'R');
                 break;
@@ -318,8 +308,7 @@ void State::mutate(const Action& action) {
     }
 
     // Check if the player can still castle
-    if(m_castling_status[player_id] != CASTLE_NONE)
-    {
+    if (m_castling_status[player_id] != CASTLE_NONE) {
         auto can_castle = m_castling_status[player_id];
         bool king_moved = action.m_piece.type == 'K';
         bool kingside_rook_moved, queenside_rook_moved;
@@ -327,27 +316,59 @@ void State::mutate(const Action& action) {
         // We can just check if the rooks are in their original spots
         // If they moved away and back, castling status would have
         // been disabled, so this is safe.
-        if(player_id == 0)
-        {
-            kingside_rook_moved  = m_collision_map[0][7] != 'R';
+        if (player_id == 0) {
+            kingside_rook_moved = m_collision_map[0][7] != 'R';
             queenside_rook_moved = m_collision_map[0][0] != 'R';
         } else {
-            kingside_rook_moved  = m_collision_map[7][0] != 'r';
+            kingside_rook_moved = m_collision_map[7][0] != 'r';
             queenside_rook_moved = m_collision_map[7][7] != 'r';
         }
-        if(    king_moved
-           or (kingside_rook_moved  && (can_castle == CASTLE_KINGSIDE))
-           or (queenside_rook_moved && (can_castle == CASTLE_QUEENSIDE)))
-        {
+        if (king_moved
+            or (kingside_rook_moved && (can_castle == CASTLE_KINGSIDE))
+            or (queenside_rook_moved && (can_castle == CASTLE_QUEENSIDE))) {
             m_castling_status[player_id] = CASTLE_NONE;
-        } else if(can_castle == CASTLE_BOTH )
-        {
-            if(kingside_rook_moved) m_castling_status[player_id] = CASTLE_QUEENSIDE;
-            if(queenside_rook_moved) m_castling_status[player_id] = CASTLE_KINGSIDE;
+        } else if (can_castle == CASTLE_BOTH) {
+            if (kingside_rook_moved) m_castling_status[player_id] = CASTLE_QUEENSIDE;
+            if (queenside_rook_moved) m_castling_status[player_id] = CASTLE_KINGSIDE;
         }
     }
 
+    // Apply En Passant
+    // Check for an en passant capture
+    if((action.m_space == m_en_passant)
+       and (action.m_piece.type == 'P'))
+    {
+        int rank = m_en_passant.rank > 4 ? 4 : 3;
+        int file = m_en_passant.file;
+        // Delete the captured pawn
+        m_collision_map[rank][file] = 0;
+        for (int i = 0; i < m_player_pieces[1-player_id].size() - 1; i++) {
+            auto &piece = m_player_pieces[player_id][i];
+            if ((piece.location.rank == rank) and (piece.location.file == file)) {
+                assert(m_player_pieces[player_id][i].type == 'P');
+                m_player_pieces[player_id].erase(m_player_pieces[player_id].begin() + i);
+                break;
+            }
+        }
+    }
 
+    // Set up en passant target square for next move
+    if(action.m_piece.type == 'P'
+            and action.m_piece.location.rank == 1
+            and action.m_space.rank == 3)
+    {
+        Space forward = {1, 0};
+        m_en_passant = action.m_piece.location + forward;
+    } else if (action.m_piece.type == 'P'
+            and action.m_piece.location.rank == 6
+            and action.m_space.rank == 4)
+    {
+        Space forward = {-1, 0};
+        m_en_passant = action.m_piece.location + forward;
+    } else
+    {
+        m_en_passant = NO_EN_PASSANT;
+    }
 }
 
 std::vector<Action> State::all_actions(int player_id) {
@@ -402,11 +423,6 @@ std::vector<Action> State::all_actions(int player_id) {
                     }
                 }
             }
-
-
-            // En passant
-
-
         } else if (piece.type == 'N')
         {
             for(auto& offset : KNIGHT_MOVES)
@@ -475,9 +491,6 @@ std::vector<Action> State::all_actions(int player_id) {
         {
             std::cout << "Warning: " << piece.parent->type << " moves not yet implemented." << std::endl;
         }
-
-
-        // En Passant
     }
     return actions;
 }
