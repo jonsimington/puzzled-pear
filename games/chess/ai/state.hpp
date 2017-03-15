@@ -46,6 +46,12 @@ public:
 
     bool friend operator==(const State &lhs, const State &rhs);
 
+    // Evaluates the strength of the specified player
+    // @param player_id : 0 for white
+    //                    1 for black
+    // @return strength, Higher numbers are better
+    int heuristic_eval(int player_id);
+
 private:
     // Calculates all actions allowed by traditional moves of chess
     // Including actions that could put the player in check

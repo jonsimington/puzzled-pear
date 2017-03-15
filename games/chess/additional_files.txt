@@ -6,3 +6,4 @@
 
 ai/action.cpp
 ai/state.cpp
+ai/heuristic.cpp
