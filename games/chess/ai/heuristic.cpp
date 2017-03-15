@@ -37,4 +37,10 @@ int State::heuristic_eval(int player_id)
             score += WEIGHT_PIECES_CAN_CAPTURE * PIECE_VALUE.at(piece_type);
         }
     }
+
+    if(in_check(player_id))
+    {
+        score += IN_CHECK_VALUE;
+    }
+    return  score;
 }
