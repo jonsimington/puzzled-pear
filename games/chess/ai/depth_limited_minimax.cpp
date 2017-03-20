@@ -10,8 +10,10 @@ Action depth_limited_minimax_search(const State &state, int depth_limit)
     auto actions = state.available_actions(active_player);
     int best_action_score = -1, best_action_index = 0;
     assert(actions.size() > 0);
+    std::cout << "Available actions: " << actions.size() << std::endl;
     for (int i = 0; i < actions.size(); i++)
     {
+        std::cout << "Actions Explored: " << i << std::endl;
         int score = dlmm_minv(state.apply(actions[i]), active_player, depth_limit - 1);
         if ((score > best_action_score)
             or ((score == best_action_score)
