@@ -50,7 +50,7 @@ public:
     // @param player_id : 0 for white
     //                    1 for black
     // @return strength, Higher numbers are better
-    int heuristic_eval(int player_id);
+    const int heuristic_eval(int player_id);
 
 private:
     // Calculates all actions allowed by traditional moves of chess
@@ -80,6 +80,7 @@ private:
     void straight_line_moves(const PieceModel &piece, std::vector<Space> directions, int player_id,
                              std::vector<Action> &actions);
 
+    int m_active_player;
 
     // Arrays of 2 - one for each player
     std::vector<PieceModel> m_player_pieces[2];      // The main data structure where pieces are stored.

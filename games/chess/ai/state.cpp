@@ -88,6 +88,9 @@ const int PAWN_START_RANK[] = {1, 6};
 State::State(const cpp_client::chess::Game &game)
     : m_collision_map()
 {
+    m_active_player = game->current_player->id[0] - '0';
+    assert(m_active_player == 0 or m_active_player == 1);
+
     // Read in pieces
     for (const auto &piece: game->pieces) {
         PieceModel piecemodel(piece);
@@ -289,6 +292,9 @@ std::vector<Action> State::all_actions(int player_id)
 
 void State::mutate(const Action &action)
 {
+    // Swap active player
+    m_active_player = (m_active_player == 0 ? 1 : 0);
+
     // Update the board
     int player_id = action.m_piece.parent->owner->id[0] - '0';
     const Space &from = action.m_piece.location;
