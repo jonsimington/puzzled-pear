@@ -9,6 +9,7 @@ Action depth_limited_minimax_search(const State &state, int depth_limit)
     int active_player = state.get_active_player();
     auto actions = state.available_actions(active_player);
     int best_action_score = -1, best_action_index = 0;
+    assert(actions.size() > 0);
     for (int i = 0; i < actions.size(); i++)
     {
         int score = dlmm_minv(state.apply(actions[i]), active_player, depth_limit - 1);

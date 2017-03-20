@@ -81,32 +81,9 @@ bool AI::run_turn()
     // 4) Run Depth Limited Minimax, depth of 4
     State state(game);
     Action best_action = depth_limited_minimax_search(state, 4);
-
-    // 4) Generate Actions
-    State board(game);
-    int player_id = game->current_player->id[0] - '0';
-    auto actions = board.available_actions(player_id);
-
-    // 5) Pick a random action
-    if(actions.size() > 0) {
-        auto action = actions[rand() % actions.size()];
-        std::cout << "Selected Action: " << action << std::endl;
-        std::cout << "Other actions associated with this piece: " << std::endl;
-        for(auto& other : actions)
-        {
-            if(other.m_piece.parent->id == action.m_piece.parent->id)
-            {
-                std::cout << '\t' << other << std::endl;
-            }
-        }
-        assert(action.m_piece.parent->owner->id == game->current_player->id);
-        action.execute();
-        return true; // to signify we are done with our turn.
-    } else
-    {
-        // return false; // No actions available
-        return true; // Crash the server so we can see that sweet, sweet stack trace
-    }
+    assert(best_action.m_piece.parent->owner->id == game->current_player->id);
+    best_action.execute();
+    return true;
 }
 
 /// <summary>
