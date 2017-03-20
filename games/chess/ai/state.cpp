@@ -135,7 +135,7 @@ State::State(const cpp_client::chess::Game &game)
     }
 }
 
-std::vector<Action> State::available_actions(int player_id)
+std::vector<Action> State::available_actions(int player_id) const
 {
 
     auto possible_actions = all_actions(player_id);
@@ -158,7 +158,7 @@ std::vector<Action> State::available_actions(int player_id)
     return valid_actions;
 }
 
-State State::apply(const Action &action)
+State State::apply(const Action &action) const
 {
     State copy = *this;   // I'm hoping and praying that c++ is smart enough
     // To generate a default copy constructor that deep copies
@@ -168,7 +168,7 @@ State State::apply(const Action &action)
     return copy;
 }
 
-bool State::in_check(int player_id)
+bool State::in_check(int player_id) const
 {
     auto possible_opponent_actions = all_actions(1 - player_id);
     bool in_check = false;
@@ -181,7 +181,7 @@ bool State::in_check(int player_id)
     }
     return in_check;
 }
-std::vector<Action> State::all_actions(int player_id)
+std::vector<Action> State::all_actions(int player_id) const
 {
     assert(player_id == 0 or player_id == 1);
 
@@ -444,7 +444,7 @@ void State::mutate(const Action &action)
     }
 }
 
-bool State::is_clear(const Space &space)
+bool State::is_clear(const Space &space) const
 {
     if ((space.rank > 7) or (space.rank < 0)
         or (space.file > 7) or (space.file < 0)) {
@@ -455,7 +455,7 @@ bool State::is_clear(const Space &space)
     }
 }
 
-bool State::has_opponent_piece(Space space, int player_id)
+bool State::has_opponent_piece(Space space, int player_id) const
 {
     if ((space.rank > 7) or (space.rank < 0)
         or (space.file > 7) or (space.file < 0)) {
@@ -475,7 +475,7 @@ bool State::has_opponent_piece(Space space, int player_id)
 }
 
 void State::straight_line_moves(const PieceModel &piece, std::vector<Space> directions, int player_id,
-                                std::vector<Action> &actions)
+                                std::vector<Action> &actions) const
 {
     for (auto &direction : directions) {
         Space space = piece.location + direction;

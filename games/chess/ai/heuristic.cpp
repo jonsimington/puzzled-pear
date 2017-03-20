@@ -9,7 +9,7 @@ const int WEIGHT_PIECES_OWNED = 5;
 const int WEIGHT_PIECES_CAN_CAPTURE = 3;
 
 // Values assigned to situations and actions
-const int IN_CHECK_VALUE = -100; // Being in check is not good. Negative points.
+const int IN_CHECK_VALUE = 100;
 
 const std::map<char, int> PIECE_VALUE{
     {'P', 1},
@@ -20,9 +20,10 @@ const std::map<char, int> PIECE_VALUE{
     {'K', 0}, // Can't be taken
 };
 
-int State::heuristic_eval(int player_id)
+int State::heuristic_eval(int player_id) const
 {
     assert((player_id == 0) | (player_id == 1));
+    int opponent_id = (player_id == 0 ? 1 : 0);
     int score = 0;
 
     // Add pieces owned by the player
@@ -31,14 +32,20 @@ int State::heuristic_eval(int player_id)
     }
 
     // Add pieces that the player can capture
-    for (const auto& action : this->all_actions(player_id)) {
+    for (const auto& action : this->available_actions(player_id)) {
         if(action.m_target_piece != 0) {
             char piece_type = (char) toupper(action.m_target_piece);
             score += WEIGHT_PIECES_CAN_CAPTURE * PIECE_VALUE.at(piece_type);
         }
     }
 
+    // Being in check is bad. Putting the other player in check is good.
     if(in_check(player_id))
+    {
+        score -= IN_CHECK_VALUE;
+    }
+
+    if(in_check(opponent_id))
     {
         score += IN_CHECK_VALUE;
     }
