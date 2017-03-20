@@ -222,6 +222,7 @@ std::vector<Action> State::all_actions(int player_id) const
                 if ((has_opponent_piece(attack_spaces[i], player_id))
                     or attack_spaces[i] == m_en_passant) {
                     char target = m_collision_map[attack_spaces[i].rank][attack_spaces[i].file];
+                    if(attack_spaces[i] == m_en_passant) target = 'p';
                     if (can_promote) {
                         for (auto &promotion_type : POSSIBLE_PROMOTIONS) {
                             actions.push_back(Action(piece, attack_spaces[i], target, promotion_type));
