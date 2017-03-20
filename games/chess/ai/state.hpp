@@ -49,7 +49,8 @@ public:
     // Evaluates the strength of the specified player
     // @param player_id : 0 for white
     //                    1 for black
-    // @return strength, Higher numbers are better
+    // @return strength, Higher numbers are better.
+    //                   Will never be lower than 0
     int heuristic_eval(int player_id) const;
 
 private:
@@ -81,6 +82,9 @@ private:
                              std::vector<Action> &actions) const;
 
     int m_active_player;
+public:
+    int get_active_player() const;
+private:
 
     // Arrays of 2 - one for each player
     std::vector<PieceModel> m_player_pieces[2];      // The main data structure where pieces are stored.

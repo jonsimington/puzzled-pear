@@ -49,5 +49,7 @@ int State::heuristic_eval(int player_id) const
     {
         score += IN_CHECK_VALUE;
     }
+
+    if(score < 0) score = 0;
     return  score;
 }

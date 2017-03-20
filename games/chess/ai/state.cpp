@@ -489,6 +489,10 @@ void State::straight_line_moves(const PieceModel &piece, std::vector<Space> dire
         }
     }
 }
+int State::get_active_player() const
+{
+    return m_active_player;
+}
 
 
 

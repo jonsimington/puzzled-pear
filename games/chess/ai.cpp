@@ -4,6 +4,7 @@
 #include "ai.hpp"
 #include "ai/action.hpp"
 #include "ai/state.hpp"
+#include "ai/depth_limited_minimax.hpp"
 
 // You can add #includes here for your AI.
 
@@ -76,6 +77,10 @@ bool AI::run_turn()
 
     // 3) print how much time remaining this AI has to calculate moves
     std::cout << "Time Remaining: " << player->time_remaining << " ns" << std::endl;
+
+    // 4) Run Depth Limited Minimax, depth of 4
+    State state(game);
+    Action best_action = depth_limited_minimax_search(state, 4);
 
     // 4) Generate Actions
     State board(game);
