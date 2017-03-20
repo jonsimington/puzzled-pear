@@ -46,7 +46,11 @@ bool operator==(const Space &lhs, const Space &rhs)
 
 PieceModel::PieceModel(cpp_client::chess::Piece piece)
 {
-    parent = piece;
+    parent = &*piece; // The profiler showed a significant performance penalty for
+                      // making several million copies of a shared pointer
+                      // Because we know that this object won't be deallocated
+                      // as long as we're deciding on a move and we never modify
+                      // it, using an unmanaged pointer here is safe
     type = PIECE_CODE_LOOKUP[piece->type];
     // Convert location to 0-indexed
     auto rank = piece->rank;

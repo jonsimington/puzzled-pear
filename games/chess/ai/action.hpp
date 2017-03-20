@@ -46,7 +46,7 @@ class PieceModel
 public:
     PieceModel(cpp_client::chess::Piece piece);
 
-    cpp_client::chess::Piece parent;
+    cpp_client::chess::Piece_* parent;
     char type; // Always an uppercase one character piece code
     Space location;
 };

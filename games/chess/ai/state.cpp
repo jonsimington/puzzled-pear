@@ -168,6 +168,8 @@ State State::apply(const Action &action) const
     return copy;
 }
 
+// Profiling indicates that this is the slowest because it's called constantly
+// TODO: Implement caching here for major speedup
 bool State::in_check(int player_id) const
 {
     auto possible_opponent_actions = all_actions(1 - player_id);

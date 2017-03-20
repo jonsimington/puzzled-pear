@@ -80,7 +80,7 @@ bool AI::run_turn()
 
     // 4) Run Depth Limited Minimax, depth of 4
     State state(game);
-    Action best_action = depth_limited_minimax_search(state, 4);
+    Action best_action = depth_limited_minimax_search(state, 3);
     assert(best_action.m_piece.parent->owner->id == game->current_player->id);
     best_action.execute();
     return true;
