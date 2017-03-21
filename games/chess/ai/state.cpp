@@ -223,6 +223,7 @@ std::vector<Action> State::all_actions(int player_id) const
                     or attack_spaces[i] == m_en_passant) {
                     char target = m_collision_map[attack_spaces[i].rank][attack_spaces[i].file];
                     if(attack_spaces[i] == m_en_passant) target = 'p';
+                    assert(target != 0);
                     if (can_promote) {
                         for (auto &promotion_type : POSSIBLE_PROMOTIONS) {
                             actions.push_back(Action(piece, attack_spaces[i], target, promotion_type));
@@ -298,6 +299,17 @@ void State::mutate(const Action &action)
     // Swap active player
     m_active_player = (m_active_player == 0 ? 1 : 0);
 
+    // Debug: Assert Precondition
+    /*
+    for(const auto& piece : m_player_pieces[0])
+    {
+        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+    }
+    for(const auto& piece : m_player_pieces[1])
+    {
+        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+    }*/
+
     // Update the board
     int player_id = action.m_piece.parent->owner->id[0] - '0';
     const Space &from = action.m_piece.location;
@@ -319,29 +331,47 @@ void State::mutate(const Action &action)
     // starts complaining.
     //
     // I miss python. Why am I doing this to myself?
+    bool piece_moved = false;
     for (auto &piece : m_player_pieces[player_id]) {
         if (piece.location == action.m_piece.location) {
             piece.location = action.m_space;
-            assert(piece.type == action.m_piece.type);
+            //assert(piece.type == action.m_piece.type);
+            piece_moved = true;
             break;
         }
     }
+    assert(piece_moved);
 
     // If the move takes a piece, delete it from the list
     // The collision map doesn't store links,
     // so we have to iterate through the opponent's pieces until we find the
     // right one. In practice this isn't a problem because there are never more
     // than 16 opponent pieces, which is a small number.
+    int opponent_id = (player_id == 0 ? 1 : 0);
     if (action.m_target_piece != 0) {
-        for (int i = 0; i < m_player_pieces[player_id].size() - 1; i++) {
-            auto &piece = m_player_pieces[player_id][i];
-            if (piece.location.rank == to.rank && piece.location.file == to.file) {
+        bool piece_taken = false;
+        for (int i = 0; i < m_player_pieces[opponent_id].size(); i++) {
+            auto &piece = m_player_pieces[opponent_id][i];
+            if (piece.location == to) {
                 // Delete the piece from the list
-                m_player_pieces[player_id].erase(m_player_pieces[player_id].begin() + i);
+                m_player_pieces[opponent_id].erase(m_player_pieces[opponent_id].begin() + i);
+                piece_taken = true;
                 break;
             }
         }
+        assert(piece_taken or !(m_en_passant == NO_EN_PASSANT));
     }
+
+    // Debug: Assert Postcondition
+    /*
+    for(const auto& piece : m_player_pieces[0])
+    {
+        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+    }
+    for(const auto& piece : m_player_pieces[1])
+    {
+        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+    }*/
 
     // Handle Pawn Promotion
     if ((action.m_piece.type == 'p' or action.m_piece.type == 'P')
