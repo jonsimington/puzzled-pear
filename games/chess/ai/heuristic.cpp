@@ -6,8 +6,8 @@
 
 // Relative weights of different parts of heuristic
 const int WEIGHT_PIECES_OWNED = 20;
-
 const int WEIGHT_PIECES_CAN_CAPTURE = 3;
+const int WEIGHT_OPPONENT_PIECES = -5;
 
 // Values assigned to situations and actions
 const int IN_CHECK_VALUE = 100;
@@ -31,6 +31,11 @@ int State::heuristic_eval(int player_id) const
     for (const auto &piece: m_player_pieces[player_id])
     {
         score += WEIGHT_PIECES_OWNED * PIECE_VALUE.at(piece.type);
+    }
+
+    for (const auto &piece: m_player_pieces[opponent_id])
+    {
+        score += WEIGHT_OPPONENT_PIECES * PIECE_VALUE.at(piece.type);
     }
 
     // Add pieces that the player can capture

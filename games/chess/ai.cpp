@@ -8,7 +8,7 @@
 
 // You can add #includes here for your AI.
 
-#define MAX_DEPTH 2
+#define MAX_DEPTH 3
 
 namespace cpp_client
 {
