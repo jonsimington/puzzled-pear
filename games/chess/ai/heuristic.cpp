@@ -7,10 +7,10 @@
 // Relative weights of different parts of heuristic
 const int WEIGHT_PIECES_OWNED = 20;
 const int WEIGHT_PIECES_CAN_CAPTURE = 3;
-const int WEIGHT_OPPONENT_PIECES = -5;
+const int WEIGHT_OPPONENT_PIECES = -20;
 
 // Values assigned to situations and actions
-const int IN_CHECK_VALUE = 100;
+const int IN_CHECK_VALUE = 50;
 
 const std::map<char, int> PIECE_VALUE{
     {'P', 1},
@@ -59,6 +59,5 @@ int State::heuristic_eval(int player_id) const
         score += IN_CHECK_VALUE;
     }
 
-    if (score < 0) score = 0;
     return score;
 }

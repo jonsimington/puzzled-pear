@@ -50,8 +50,7 @@ int dlmm_minv(const State &state, int max_player_id, int depth_limit)
     // Check for terminal state
     if (actions.size() <= 0)
     {
-        // Maybe this should be something special for checkmate?
-        return state.heuristic_eval(max_player_id);
+        return INFINITY; // CHECKMATE! Victory.
     }
     int best_action_score = INFINITY; //Trying to minimize, so start out with +inf and reduce
     for (const auto &action : actions)
@@ -80,10 +79,10 @@ int dlmm_maxv(const State &state, int max_player_id, int depth_limit)
     auto actions = state.available_actions(state.get_active_player());
     if (actions.size() <= 0)
     {
-        return state.heuristic_eval(max_player_id);
+        return -INFINITY; // CHECKMATE! Loss.
     }
 
-    int best_action_score = -1;
+    int best_action_score = -INFINITY;
     for (const auto &action : actions)
     {
         int score = dlmm_minv(state.apply(action), max_player_id, depth_limit - 1);
@@ -94,6 +93,7 @@ int dlmm_maxv(const State &state, int max_player_id, int depth_limit)
         {
             best_action_score = score;
         }
+        assert(best_action_score > -INFINITY);
     }
     return best_action_score;
 }
