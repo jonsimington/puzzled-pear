@@ -5,7 +5,8 @@
 #include "state.hpp"
 
 // Relative weights of different parts of heuristic
-const int WEIGHT_PIECES_OWNED = 5;
+const int WEIGHT_PIECES_OWNED = 20;
+
 const int WEIGHT_PIECES_CAN_CAPTURE = 3;
 
 // Values assigned to situations and actions
@@ -27,29 +28,32 @@ int State::heuristic_eval(int player_id) const
     int score = 0;
 
     // Add pieces owned by the player
-    for (const auto& piece: m_player_pieces[player_id]) {
+    for (const auto &piece: m_player_pieces[player_id])
+    {
         score += WEIGHT_PIECES_OWNED * PIECE_VALUE.at(piece.type);
     }
 
     // Add pieces that the player can capture
-    for (const auto& action : this->available_actions(player_id)) {
-        if(action.m_target_piece != 0) {
+    for (const auto &action : this->available_actions(player_id))
+    {
+        if (action.m_target_piece != 0)
+        {
             char piece_type = (char) toupper(action.m_target_piece);
             score += WEIGHT_PIECES_CAN_CAPTURE * PIECE_VALUE.at(piece_type);
         }
     }
 
     // Being in check is bad. Putting the other player in check is good.
-    if(in_check(player_id))
+    if (in_check(player_id))
     {
         score -= IN_CHECK_VALUE;
     }
 
-    if(in_check(opponent_id))
+    if (in_check(opponent_id))
     {
         score += IN_CHECK_VALUE;
     }
 
-    if(score < 0) score = 0;
-    return  score;
+    if (score < 0) score = 0;
+    return score;
 }

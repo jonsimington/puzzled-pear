@@ -8,6 +8,8 @@
 
 // You can add #includes here for your AI.
 
+#define MAX_DEPTH 2
+
 namespace cpp_client
 {
 
@@ -78,9 +80,16 @@ bool AI::run_turn()
     // 3) print how much time remaining this AI has to calculate moves
     std::cout << "Time Remaining: " << player->time_remaining << " ns" << std::endl;
 
-    // 4) Run Depth Limited Minimax, depth of 4
+    // 4) Run Iterative Deepening Minimax, Max depth of 3
     State state(game);
-    Action best_action = depth_limited_minimax_search(state, 3);
+
+    // Initialize with a random action, then improve with ID-DLMM
+    Action best_action = state.available_actions(state.get_active_player())[0];
+    for(int i = 1; i <= MAX_DEPTH; i++)
+    {
+        best_action = depth_limited_minimax_search(state, i);
+        std::cout << "Best action for depth " << i << " :" << best_action << std::endl;
+    }
     assert(best_action.m_piece.parent->owner->id == game->current_player->id);
     best_action.execute();
     return true;
