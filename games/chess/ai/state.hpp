@@ -53,6 +53,8 @@ public:
     //                   Will never be lower than 0
     int heuristic_eval(int player_id) const;
 
+    int get_active_player() const;
+
 private:
     // Calculates all actions allowed by traditional moves of chess
     // Including actions that could put the player in check
@@ -81,10 +83,9 @@ private:
     void straight_line_moves(const PieceModel &piece, std::vector<Space> directions, int player_id,
                              std::vector<Action> &actions) const;
 
+    void remove_piece(int player_id, const Space& location);
+
     int m_active_player;
-public:
-    int get_active_player() const;
-private:
 
     // Arrays of 2 - one for each player
     std::vector<PieceModel> m_player_pieces[2];      // The main data structure where pieces are stored.

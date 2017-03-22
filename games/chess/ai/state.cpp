@@ -191,7 +191,9 @@ std::vector<Action> State::all_actions(int player_id) const
 
     // maybe forward[player_id] would be better?
     Space forward = {1, 0};
+    Space backward = {-1, 0};
     if (player_id == 1) forward = {-1, 0};
+    if (player_id == 1) backward = {1, 0};
 
     for (auto &piece : m_player_pieces[player_id]) {
         if (piece.type == 'P') {
@@ -220,7 +222,9 @@ std::vector<Action> State::all_actions(int player_id) const
                                      piece.location + forward + right};
             for (int i = 0; i < 2; i++) {
                 if ((has_opponent_piece(attack_spaces[i], player_id))
-                    or attack_spaces[i] == m_en_passant) {
+                     or (attack_spaces[i] == m_en_passant
+                         && has_opponent_piece(m_en_passant + backward, player_id)))
+                {
                     char target = m_collision_map[attack_spaces[i].rank][attack_spaces[i].file];
                     if(attack_spaces[i] == m_en_passant) target = 'p';
                     assert(target != 0);
@@ -296,22 +300,15 @@ std::vector<Action> State::all_actions(int player_id) const
 
 void State::mutate(const Action &action)
 {
-    // Swap active player
-    m_active_player = (m_active_player == 0 ? 1 : 0);
-
-    // Debug: Assert Precondition
-    /*
+    // Debug: Assert loop invariant is satisfied
     for(const auto& piece : m_player_pieces[0])
-    {
         assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
-    }
     for(const auto& piece : m_player_pieces[1])
-    {
         assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
-    }*/
 
     // Update the board
-    int player_id = action.m_piece.parent->owner->id[0] - '0';
+    int player_id = action.m_piece.parent->owner->id[0] - '0'; // This can be different from current player
+                                                               // if we're checking for threatened squares
     const Space &from = action.m_piece.location;
     const Space &to = action.m_space;
     m_collision_map[from.rank][from.file] = 0;
@@ -342,36 +339,26 @@ void State::mutate(const Action &action)
     }
     assert(piece_moved);
 
-    // If the move takes a piece, delete it from the list
-    // The collision map doesn't store links,
-    // so we have to iterate through the opponent's pieces until we find the
-    // right one. In practice this isn't a problem because there are never more
-    // than 16 opponent pieces, which is a small number.
     int opponent_id = (player_id == 0 ? 1 : 0);
-    if (action.m_target_piece != 0) {
-        bool piece_taken = false;
-        for (int i = 0; i < m_player_pieces[opponent_id].size(); i++) {
-            auto &piece = m_player_pieces[opponent_id][i];
-            if (piece.location == to) {
-                // Delete the piece from the list
-                m_player_pieces[opponent_id].erase(m_player_pieces[opponent_id].begin() + i);
-                piece_taken = true;
-                break;
-            }
+    if(action.m_target_piece != 0)
+    {
+        if(action.m_space == m_en_passant)
+        {
+            int rank = m_en_passant.rank > 4 ? 4 : 3;
+            Space true_location = {rank, action.m_space.file};
+            m_collision_map[true_location.rank][true_location.file] = 0;
+            remove_piece(opponent_id, true_location);
+        } else
+        {
+            remove_piece(opponent_id, action.m_space);
         }
-        assert(piece_taken or !(m_en_passant == NO_EN_PASSANT));
     }
 
-    // Debug: Assert Postcondition
-    /*
+    // Debug: Assert loop invariant is satisfied
     for(const auto& piece : m_player_pieces[0])
-    {
         assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
-    }
     for(const auto& piece : m_player_pieces[1])
-    {
         assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
-    }*/
 
     // Handle Pawn Promotion
     if ((action.m_piece.type == 'p' or action.m_piece.type == 'P')
@@ -383,6 +370,12 @@ void State::mutate(const Action &action)
             }
         }
     }
+
+    // Debug: Assert loop invariant is satisfied
+    for(const auto& piece : m_player_pieces[0])
+        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+    for(const auto& piece : m_player_pieces[1])
+        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
 
     // Apply Castling. Should already have been applied to the king, but we
     // need to get the rook now, too.
@@ -413,6 +406,12 @@ void State::mutate(const Action &action)
         }
     }
 
+    // Debug: Assert loop invariant is satisfied
+    for(const auto& piece : m_player_pieces[0])
+        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+    for(const auto& piece : m_player_pieces[1])
+        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+
     // Check if the player can still castle
     if (m_castling_status[player_id] != CASTLE_NONE) {
         auto can_castle = m_castling_status[player_id];
@@ -441,40 +440,34 @@ void State::mutate(const Action &action)
         }
     }
 
-    // Apply En Passant
-    // Check for an en passant capture
-    if ((action.m_space == m_en_passant)
-        and (action.m_piece.type == 'P')) {
-        int rank = m_en_passant.rank > 4 ? 4 : 3;
-        int file = m_en_passant.file;
-        // Delete the captured pawn
-        m_collision_map[rank][file] = 0;
-        for (int i = 0; i < m_player_pieces[1 - player_id].size() - 1; i++) {
-            auto &piece = m_player_pieces[player_id][i];
-            if ((piece.location.rank == rank) and (piece.location.file == file)) {
-                assert(m_player_pieces[player_id][i].type == 'P');
-                m_player_pieces[player_id].erase(m_player_pieces[player_id].begin() + i);
-                break;
-            }
-        }
-    }
-
     // Set up en passant target square for next move
     if (action.m_piece.type == 'P'
         and action.m_piece.location.rank == 1
         and action.m_space.rank == 3) {
         Space forward = {1, 0};
         m_en_passant = action.m_piece.location + forward;
+        assert(m_collision_map[m_en_passant.rank][m_en_passant.file] == 0);
     }
     else if (action.m_piece.type == 'P'
         and action.m_piece.location.rank == 6
         and action.m_space.rank == 4) {
         Space forward = {-1, 0};
         m_en_passant = action.m_piece.location + forward;
+        assert(m_collision_map[m_en_passant.rank][m_en_passant.file] == 0);
     }
     else {
         m_en_passant = NO_EN_PASSANT;
     }
+
+    // Debug: Assert loop invariant is satisfied
+    for(const auto& piece : m_player_pieces[0])
+        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+    for(const auto& piece : m_player_pieces[1])
+        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+
+    // Swap active player
+    m_active_player = (m_active_player == 0 ? 1 : 0);
+
 }
 
 bool State::is_clear(const Space &space) const
@@ -525,6 +518,25 @@ void State::straight_line_moves(const PieceModel &piece, std::vector<Space> dire
 int State::get_active_player() const
 {
     return m_active_player;
+}
+void State::remove_piece(int player_id, const Space &location)
+{
+    // If the move takes a piece, delete it from the list
+    // The collision map doesn't store links,
+    // so we have to iterate through the opponent's pieces until we find the
+    // right one. In practice this isn't a problem because there are never more
+    // than 16 opponent pieces, which is a small number.
+    bool piece_taken = false;
+    for (int i = 0; i < m_player_pieces[player_id].size(); i++) {
+        auto &piece = m_player_pieces[player_id][i];
+        if (piece.location == location) {
+            // Delete the piece from the list
+            m_player_pieces[player_id].erase(m_player_pieces[player_id].begin() + i);
+            piece_taken = true;
+            break;
+        }
+    }
+    assert(piece_taken);
 }
 
 
