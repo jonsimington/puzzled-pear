@@ -10,7 +10,7 @@ Action depth_limited_minimax_search(const State &state, int depth_limit)
 {
     int active_player = state.get_active_player();
     auto actions = state.available_actions(active_player);
-    int best_action_score = -1, best_action_index = 0;
+    int best_action_score = -INFINITY, best_action_index = 0;
     assert(actions.size() > 0);
     bool action_picked = false;
     std::cout << "Available actions: " << actions.size() << "\nActions Explored: " << std::flush;
@@ -26,7 +26,7 @@ Action depth_limited_minimax_search(const State &state, int depth_limit)
             best_action_index = i;
             action_picked = true;
         }
-        assert(best_action_score != -1);
+        assert(best_action_score != -INFINITY);
         // If there's a tie, 50% chance of replacement
         // Statistically, this implementation might favor later
         // generated actions instead of being completely fair.

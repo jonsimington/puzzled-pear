@@ -301,10 +301,12 @@ std::vector<Action> State::all_actions(int player_id) const
 void State::mutate(const Action &action)
 {
     // Debug: Assert loop invariant is satisfied
+    /*
     for(const auto& piece : m_player_pieces[0])
         assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
     for(const auto& piece : m_player_pieces[1])
         assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+    */
 
     // Update the board
     int player_id = action.m_piece.parent->owner->id[0] - '0'; // This can be different from current player
@@ -354,12 +356,6 @@ void State::mutate(const Action &action)
         }
     }
 
-    // Debug: Assert loop invariant is satisfied
-    for(const auto& piece : m_player_pieces[0])
-        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
-    for(const auto& piece : m_player_pieces[1])
-        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
-
     // Handle Pawn Promotion
     if ((action.m_piece.type == 'p' or action.m_piece.type == 'P')
         and action.m_promotion != "") {
@@ -370,12 +366,6 @@ void State::mutate(const Action &action)
             }
         }
     }
-
-    // Debug: Assert loop invariant is satisfied
-    for(const auto& piece : m_player_pieces[0])
-        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
-    for(const auto& piece : m_player_pieces[1])
-        assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
 
     // Apply Castling. Should already have been applied to the king, but we
     // need to get the rook now, too.
@@ -407,10 +397,12 @@ void State::mutate(const Action &action)
     }
 
     // Debug: Assert loop invariant is satisfied
+    /*
     for(const auto& piece : m_player_pieces[0])
         assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
     for(const auto& piece : m_player_pieces[1])
         assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+    */
 
     // Check if the player can still castle
     if (m_castling_status[player_id] != CASTLE_NONE) {
@@ -460,11 +452,12 @@ void State::mutate(const Action &action)
     }
 
     // Debug: Assert loop invariant is satisfied
+    /*
     for(const auto& piece : m_player_pieces[0])
         assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
     for(const auto& piece : m_player_pieces[1])
         assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
-
+    */
     // Swap active player
     m_active_player = (m_active_player == 0 ? 1 : 0);
 
