@@ -66,7 +66,7 @@ int dlmm_minv(const State &state, int max_player_id, int depth_limit, int alpha,
         {
             return score;
         }
-        if(score > beta)
+        if(score < beta)
         {
             beta = score;
         }
