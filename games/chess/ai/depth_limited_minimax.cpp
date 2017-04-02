@@ -116,7 +116,7 @@ int dlmm_maxv(const State &state, int max_player_id, int depth_limit, int alpha,
         {
             best_action_score = score;
         }
-        assert(best_action_score > -INFINITY);
+        //assert(best_action_score > -INFINITY);
     }
     return best_action_score;
 }

@@ -38,7 +38,9 @@ int State::heuristic_eval(int player_id) const
         score += WEIGHT_OPPONENT_PIECES * PIECE_VALUE.at(piece.type);
     }
 
+    // As it turns out, this is very, very expensive
     // Add pieces threatened by the player
+    /*
     for (const auto &action : this->available_actions(player_id))
     {
         if (action.m_target_piece != 0)
@@ -58,6 +60,7 @@ int State::heuristic_eval(int player_id) const
     {
         score += IN_CHECK_VALUE;
     }
+     */
 
     return score;
 }
