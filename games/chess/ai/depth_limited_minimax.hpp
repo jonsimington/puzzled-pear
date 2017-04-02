@@ -16,11 +16,11 @@ Action depth_limited_minimax_search(const State& state, int depth_limit);
 //
 // keeping track of the max player's ID is necessary to
 // know who to calculate the state eval function for.
-int dlmm_minv(const State& state, int max_player_id, int depth_limit);
+int dlmm_minv(const State& state, int max_player_id, int depth_limit, int alpha, int beta);
 
 // Find the move for max player that maximizes objective function
 //
 // @pre only called on max player's turn
-int dlmm_maxv(const State& state, int max_player_id, int depth_limit);
+int dlmm_maxv(const State& state, int max_player_id, int depth_limit, int alpha, int beta);
 
 #endif //CPP_CLIENT_DEPTH_LIMITED_MINIMAX_HPP

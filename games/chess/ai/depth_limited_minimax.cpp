@@ -17,7 +17,11 @@ Action depth_limited_minimax_search(const State &state, int depth_limit)
     for (int i = 0; i < actions.size(); i++)
     {
         std::cout << i << " " << std::flush;
-        int score = dlmm_minv(state.apply(actions[i]), active_player, depth_limit - 1);
+        int score = dlmm_minv(state.apply(actions[i]),
+                              active_player,
+                              depth_limit - 1,
+                              -INFINITY,
+                              INFINITY);
         if ((score > best_action_score)
             or ((score == best_action_score)
                 && (random() % 2 == 0)))
@@ -37,7 +41,7 @@ Action depth_limited_minimax_search(const State &state, int depth_limit)
     return (actions[best_action_index]);
 }
 
-int dlmm_minv(const State &state, int max_player_id, int depth_limit)
+int dlmm_minv(const State &state, int max_player_id, int depth_limit, int alpha, int beta)
 {
     assert(state.get_active_player() != max_player_id);
 
@@ -55,7 +59,17 @@ int dlmm_minv(const State &state, int max_player_id, int depth_limit)
     int best_action_score = INFINITY; //Trying to minimize, so start out with +inf and reduce
     for (const auto &action : actions)
     {
-        int score = dlmm_maxv(state.apply(action), max_player_id, depth_limit - 1);
+        int score = dlmm_maxv(state.apply(action), max_player_id, depth_limit - 1, alpha, beta);
+
+        // Check for a fail-low
+        if(score <= alpha)
+        {
+            return score;
+        }
+        if(score > beta)
+        {
+            beta = score;
+        }
         if ((score < best_action_score)
             or ((score == best_action_score)
                 && (random() % 2 == 0)))
@@ -67,7 +81,7 @@ int dlmm_minv(const State &state, int max_player_id, int depth_limit)
     return best_action_score;
 }
 
-int dlmm_maxv(const State &state, int max_player_id, int depth_limit)
+int dlmm_maxv(const State &state, int max_player_id, int depth_limit, int alpha, int beta)
 {
     assert(state.get_active_player() == max_player_id);
 
@@ -85,8 +99,17 @@ int dlmm_maxv(const State &state, int max_player_id, int depth_limit)
     int best_action_score = -INFINITY;
     for (const auto &action : actions)
     {
-        int score = dlmm_minv(state.apply(action), max_player_id, depth_limit - 1);
-        assert(score != -1); // If this trips, it means a terminal condition has not been detected
+        int score = dlmm_minv(state.apply(action), max_player_id, depth_limit - 1, alpha, beta);
+
+        // Check for fail-high
+        if(score >= beta)
+        {
+            return score;
+        }
+        if(score > alpha)
+        {
+            alpha = score;
+        }
         if ((score > best_action_score)
             or ((score == best_action_score)
                 && (random() % 2 == 0)))

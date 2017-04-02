@@ -25,6 +25,7 @@ std::string AI::get_name() const
 {
     // REPLACE WITH YOUR TEAM NAME!
     return "owen-chiaventone";
+    // Can I rename this to "Check yourself before you rook yourself?"
 }
 
 /// <summary>
