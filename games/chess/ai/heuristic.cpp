@@ -5,7 +5,7 @@
 #include "state.hpp"
 
 // Relative weights of different parts of heuristic
-const int WEIGHT_PIECES_OWNED = 20;
+const int WEIGHT_PIECES_OWNED = 25;
 const int WEIGHT_PIECES_CAN_CAPTURE = 3;
 const int WEIGHT_OPPONENT_PIECES = -20;
 
