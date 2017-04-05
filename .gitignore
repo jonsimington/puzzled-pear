@@ -258,3 +258,6 @@ docs/output
 # CLion IDE files
 .idea/
 cmake-build-debug
+
+# Mac OSX FIles
+.DS_Store
