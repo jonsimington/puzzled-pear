@@ -40,7 +40,7 @@ int State::heuristic_eval(int player_id) const
 
     // As it turns out, this is very, very expensive
     // Add pieces threatened by the player
-    /*
+
     for (const auto &action : this->available_actions(player_id))
     {
         if (action.m_target_piece != 0)
@@ -49,7 +49,7 @@ int State::heuristic_eval(int player_id) const
             score += WEIGHT_PIECES_CAN_CAPTURE * PIECE_VALUE.at(piece_type);
         }
     }
-
+    /*
     // Being in check is bad. Putting the other player in check is good.
     if (in_check(player_id))
     {

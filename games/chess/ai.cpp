@@ -9,7 +9,7 @@
 
 // You can add #includes here for your AI.
 
-const double MAX_COMPUTATION_TIME = 5.00; // Seconds
+const double MAX_COMPUTATION_TIME = 2.00; // Seconds
 
 namespace cpp_client
 {
