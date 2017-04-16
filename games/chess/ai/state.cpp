@@ -134,7 +134,6 @@ State::State(const cpp_client::chess::Game &game)
         m_en_passant = {rank, file};
     }
 
-    recalc_hash();
     m_last_move = {-1, -1};
 }
 
@@ -222,13 +221,13 @@ std::vector<Action> State::all_actions(int player_id) const
                 // Promotion
                 if (can_promote) {
                     for (auto &promotion_type : POSSIBLE_PROMOTIONS) {
-                        actions.push_back(Action(piece, hash(), space_ahead, 0, promotion_type));
+                        actions.push_back(Action(piece, this, space_ahead, 0, promotion_type));
                     }
                 }
                 else {
-                    actions.push_back(Action(piece, hash(), space_ahead));
+                    actions.push_back(Action(piece, this, space_ahead));
                     if (in_original_space and is_clear(space_ahead + forward)) {
-                        actions.push_back(Action(piece, hash(), space_ahead + forward));
+                        actions.push_back(Action(piece, this, space_ahead + forward));
                     }
                 }
             }
@@ -247,11 +246,11 @@ std::vector<Action> State::all_actions(int player_id) const
                     assert(target != 0);
                     if (can_promote) {
                         for (auto &promotion_type : POSSIBLE_PROMOTIONS) {
-                            actions.push_back(Action(piece, hash(), attack_spaces[i], target, promotion_type));
+                            actions.push_back(Action(piece, this, attack_spaces[i], target, promotion_type));
                         }
                     }
                     else {
-                        actions.push_back(Action(piece, hash(), attack_spaces[i], target));
+                        actions.push_back(Action(piece, this, attack_spaces[i], target));
                     }
                 }
             }
@@ -261,7 +260,7 @@ std::vector<Action> State::all_actions(int player_id) const
                 auto space = piece.location + offset;
                 if (is_clear(space) or has_opponent_piece(space, player_id)) {
                     char target = m_collision_map[space.rank][space.file];
-                    actions.push_back(Action(piece, hash(), space, target));
+                    actions.push_back(Action(piece, this, space, target));
                 }
             }
         }
@@ -279,7 +278,7 @@ std::vector<Action> State::all_actions(int player_id) const
                 Space space = piece.location + direction;
                 if (is_clear(space) or has_opponent_piece(space, player_id)) {
                     char target = m_collision_map[space.rank][space.file];
-                    actions.push_back(Action(piece, hash(), space, target));
+                    actions.push_back(Action(piece, this, space, target));
                 }
             }
 
@@ -293,7 +292,7 @@ std::vector<Action> State::all_actions(int player_id) const
                         clear_to_castle &= is_clear(Space{rank, file});
                     }
                     if (clear_to_castle) {
-                        actions.push_back(Action(piece, hash(), {rank, 2}, 0, "", CASTLE_QUEENSIDE));
+                        actions.push_back(Action(piece, this, {rank, 2}, 0, "", CASTLE_QUEENSIDE));
                     }
                 }
                 if (m_castling_status[player_id] == CASTLE_KINGSIDE
@@ -303,7 +302,7 @@ std::vector<Action> State::all_actions(int player_id) const
                         clear_to_castle &= is_clear(Space{rank, file});
                     }
                     if (clear_to_castle) {
-                        actions.push_back(Action(piece, hash(), {rank, 6}, 0, "", CASTLE_KINGSIDE));
+                        actions.push_back(Action(piece, this, {rank, 6}, 0, "", CASTLE_KINGSIDE));
                     }
                 }
             }
@@ -479,8 +478,7 @@ void State::mutate(const Action &action)
     m_active_player = (m_active_player == 0 ? 1 : 0);
 
     // Update the hash value because the state has changed
-    recalc_hash();
-    m_last_move = {-1, -1};
+    m_last_move = action.m_space;
 }
 
 bool State::is_clear(const Space &space) const
@@ -521,7 +519,7 @@ void State::straight_line_moves(const PieceModel &piece, std::vector<Space> dire
         while (true) {
             if (is_clear(space) or has_opponent_piece(space, player_id)) {
                 char target_piece = m_collision_map[space.rank][space.file];
-                actions.push_back(Action(piece, hash(), space, target_piece));
+                actions.push_back(Action(piece, this, space, target_piece));
             }
             if (!is_clear(space)) break;
             space = space + direction;

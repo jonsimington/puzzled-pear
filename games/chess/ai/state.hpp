@@ -46,7 +46,7 @@ public:
 
     bool friend operator==(const State &lhs, const State &rhs);
 
-    long hash() const {return m_hash;}
+    long hash() const;
 
     // Evaluates the strength of the specified player
     // @param player_id : 0 for white
@@ -95,8 +95,6 @@ private:
     // Get type of piece at location, including bounds-checking
     char piece_at(Space space) const;
 
-    void recalc_hash();
-
     int m_active_player;
 
     // Arrays of 2 - one for each player
@@ -109,8 +107,6 @@ private:
     // White pieces are uppercase, black pieces are lowercase
     // A null character (0x00) is used for an empty space
     char m_collision_map[8][8];
-
-    long m_hash;
 
     // Last place a piece moved to, used for quiescence checks
     // Updated during state creation and mutation

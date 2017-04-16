@@ -21,6 +21,8 @@
 #include <iostream>
 #include <map>
 
+class State; //Forward-declare state class to avoid circular dependencies
+
 extern std::map<std::string, char> PIECE_CODE_LOOKUP;
 
 enum castling_status_type
@@ -56,7 +58,7 @@ class Action
 {
 public:
     Action(PieceModel piece,
-           long parent_hash,
+           const State* parent,
            Space space,
            char target_piece = 0,
            std::string promotion = "",
@@ -69,13 +71,13 @@ public:
 
     void execute();
 
-    long hash() const {return m_hash;}
+    long hash() const;
 
     friend std::ostream &operator<<(std::ostream &os, const Action &rhs);
 
     friend bool operator == (const Action& lhs, const Action& rhs);
 private:
-    long m_hash;
+    const State* m_parent;
 };
 
 #endif //CPP_CLIENT_ACTION_HPP_H

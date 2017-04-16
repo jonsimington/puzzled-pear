@@ -32,9 +32,9 @@ long init_zobrist_hash_table()
     }
 }
 
-void State::recalc_hash()
+long State::hash() const
 {
-    m_hash = 0;
+    long hash = 0;
     for (int i = 0; i < 8; i++)
     {
         for (int j = 0; j < 8; j++)
@@ -42,10 +42,14 @@ void State::recalc_hash()
             char piece = m_collision_map[i][j];
             if (piece != 0)
             {
-                m_hash ^= ZOBRIST_HASH_TABLE[i][j][HASH_INDICES.at(piece)];
+                hash ^= ZOBRIST_HASH_TABLE[i][j][HASH_INDICES.at(piece)];
             }
         }
     }
+    return hash;
 }
 
-// Meaningless boilerplate to appease the dark gods of C++
+long Action::hash() const
+{
+    return m_parent->hash() ^ ZOBRIST_HASH_TABLE[m_space.rank][m_space.file][HASH_INDICES.at(m_piece.type)];
+}

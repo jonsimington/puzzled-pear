@@ -75,5 +75,7 @@ int State::heuristic_eval(int player_id) const
 
 bool State::is_non_quiescent() const
 {
+    // Very very simple quiescence detection
+    // if the last piece we moved is in danger, look deeper
     return space_threatened(m_last_move, m_active_player);
 }
