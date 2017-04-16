@@ -8,3 +8,4 @@ ai/action.cpp
 ai/state.cpp
 ai/heuristic.cpp
 ai/depth_limited_minimax.cpp
+ai/hash.cpp

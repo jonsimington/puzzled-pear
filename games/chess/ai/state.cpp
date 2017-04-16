@@ -133,6 +133,8 @@ State::State(const cpp_client::chess::Game &game)
         int rank = en_passant[1] - '1';
         m_en_passant = {rank, file};
     }
+
+    recalc_hash();
 }
 
 std::vector<Action> State::available_actions(int player_id) const
@@ -183,6 +185,18 @@ bool State::in_check(int player_id) const
     }
     return in_check;
 }
+
+bool operator==(const State &lhs, const State &rhs)
+{
+    for(int i = 0; i < 8; i++)
+    {
+        for(int j = 0; j < 8; j++)
+        {
+            if(lhs.m_collision_map[i][j] != rhs.m_collision_map[i][j]) return false;
+        }
+    }
+    return true;
+}
 std::vector<Action> State::all_actions(int player_id) const
 {
     assert(player_id == 0 or player_id == 1);
@@ -205,13 +219,13 @@ std::vector<Action> State::all_actions(int player_id) const
                 // Promotion
                 if (can_promote) {
                     for (auto &promotion_type : POSSIBLE_PROMOTIONS) {
-                        actions.push_back(Action(piece, space_ahead, 0, promotion_type));
+                        actions.push_back(Action(piece, hash(), space_ahead, 0, promotion_type));
                     }
                 }
                 else {
-                    actions.push_back(Action(piece, space_ahead));
+                    actions.push_back(Action(piece, hash(), space_ahead));
                     if (in_original_space and is_clear(space_ahead + forward)) {
-                        actions.push_back(Action(piece, space_ahead + forward));
+                        actions.push_back(Action(piece, hash(), space_ahead + forward));
                     }
                 }
             }
@@ -230,11 +244,11 @@ std::vector<Action> State::all_actions(int player_id) const
                     assert(target != 0);
                     if (can_promote) {
                         for (auto &promotion_type : POSSIBLE_PROMOTIONS) {
-                            actions.push_back(Action(piece, attack_spaces[i], target, promotion_type));
+                            actions.push_back(Action(piece, hash(), attack_spaces[i], target, promotion_type));
                         }
                     }
                     else {
-                        actions.push_back(Action(piece, attack_spaces[i], target));
+                        actions.push_back(Action(piece, hash(), attack_spaces[i], target));
                     }
                 }
             }
@@ -244,7 +258,7 @@ std::vector<Action> State::all_actions(int player_id) const
                 auto space = piece.location + offset;
                 if (is_clear(space) or has_opponent_piece(space, player_id)) {
                     char target = m_collision_map[space.rank][space.file];
-                    actions.push_back(Action(piece, space, target));
+                    actions.push_back(Action(piece, hash(), space, target));
                 }
             }
         }
@@ -262,7 +276,7 @@ std::vector<Action> State::all_actions(int player_id) const
                 Space space = piece.location + direction;
                 if (is_clear(space) or has_opponent_piece(space, player_id)) {
                     char target = m_collision_map[space.rank][space.file];
-                    actions.push_back(Action(piece, space, target));
+                    actions.push_back(Action(piece, hash(), space, target));
                 }
             }
 
@@ -276,7 +290,7 @@ std::vector<Action> State::all_actions(int player_id) const
                         clear_to_castle &= is_clear(Space{rank, file});
                     }
                     if (clear_to_castle) {
-                        actions.push_back(Action(piece, {rank, 2}, 0, "", CASTLE_QUEENSIDE));
+                        actions.push_back(Action(piece, hash(), {rank, 2}, 0, "", CASTLE_QUEENSIDE));
                     }
                 }
                 if (m_castling_status[player_id] == CASTLE_KINGSIDE
@@ -286,7 +300,7 @@ std::vector<Action> State::all_actions(int player_id) const
                         clear_to_castle &= is_clear(Space{rank, file});
                     }
                     if (clear_to_castle) {
-                        actions.push_back(Action(piece, {rank, 6}, 0, "", CASTLE_KINGSIDE));
+                        actions.push_back(Action(piece, hash(), {rank, 6}, 0, "", CASTLE_KINGSIDE));
                     }
                 }
             }
@@ -461,6 +475,8 @@ void State::mutate(const Action &action)
     // Swap active player
     m_active_player = (m_active_player == 0 ? 1 : 0);
 
+    // Update the hash value because the state has changed
+    recalc_hash();
 }
 
 bool State::is_clear(const Space &space) const
@@ -501,7 +517,7 @@ void State::straight_line_moves(const PieceModel &piece, std::vector<Space> dire
         while (true) {
             if (is_clear(space) or has_opponent_piece(space, player_id)) {
                 char target_piece = m_collision_map[space.rank][space.file];
-                actions.push_back(Action(piece, space, target_piece));
+                actions.push_back(Action(piece, hash(), space, target_piece));
             }
             if (!is_clear(space)) break;
             space = space + direction;

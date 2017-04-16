@@ -6,7 +6,7 @@
 
 #define INT_INFINITY INT32_MAX //Ehh, close enough
 
-Action depth_limited_minimax_search(const State &state, int depth_limit)
+Action AdversarialSearch::depth_limited_minimax_search(const State &state, int depth_limit)
 {
     int active_player = state.get_active_player();
     auto actions = state.available_actions(active_player);
@@ -14,15 +14,20 @@ Action depth_limited_minimax_search(const State &state, int depth_limit)
     assert(actions.size() > 0);
     std::cout << "Available actions: " << actions.size() << "\nActions Explored: " << std::flush;
     std::vector<int> scores(actions.size());
+    int alpha = -INT_INFINITY;
+    int beta = INT_INFINITY;
 
-    #pragma omp parallel for
-    for(int i = 0; i < actions.size(); i++)
+    for (int i = 0; i < actions.size(); i++)
     {
         scores[i] = dlmm_minv(state.apply(actions[i]),
                               active_player,
                               depth_limit - 1,
-                              -INT_INFINITY,
-                              INT_INFINITY);
+                              alpha,
+                              beta);
+        if (scores[i] > alpha)
+        {
+            alpha = scores[i];
+        }
     }
 
     bool action_picked = false;
@@ -48,7 +53,7 @@ Action depth_limited_minimax_search(const State &state, int depth_limit)
     return (actions[best_action_index]);
 }
 
-int dlmm_minv(const State &state, int max_player_id, int depth_limit, int alpha, int beta)
+int AdversarialSearch::dlmm_minv(const State &state, int max_player_id, int depth_limit, int alpha, int beta)
 {
     assert(state.get_active_player() != max_player_id);
 
@@ -69,11 +74,11 @@ int dlmm_minv(const State &state, int max_player_id, int depth_limit, int alpha,
         int score = dlmm_maxv(state.apply(action), max_player_id, depth_limit - 1, alpha, beta);
 
         // Check for a fail-low
-        if(score <= alpha)
+        if (score <= alpha)
         {
             return score;
         }
-        if(score < beta)
+        if (score < beta)
         {
             beta = score;
         }
@@ -88,7 +93,7 @@ int dlmm_minv(const State &state, int max_player_id, int depth_limit, int alpha,
     return best_action_score;
 }
 
-int dlmm_maxv(const State &state, int max_player_id, int depth_limit, int alpha, int beta)
+int AdversarialSearch::dlmm_maxv(const State &state, int max_player_id, int depth_limit, int alpha, int beta)
 {
     assert(state.get_active_player() == max_player_id);
 
@@ -109,11 +114,11 @@ int dlmm_maxv(const State &state, int max_player_id, int depth_limit, int alpha,
         int score = dlmm_minv(state.apply(action), max_player_id, depth_limit - 1, alpha, beta);
 
         // Check for fail-high
-        if(score >= beta)
+        if (score >= beta)
         {
             return score;
         }
-        if(score > alpha)
+        if (score > alpha)
         {
             alpha = score;
         }

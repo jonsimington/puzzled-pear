@@ -16,12 +16,35 @@ std::map<std::string, char> PIECE_CODE_LOOKUP{
     {"King", 'K'}
 };
 
+Action::Action(PieceModel piece,
+                long parent_hash,
+                Space space,
+                char target_piece,
+                std::string promotion,
+                castling_status_type castle)
+                : m_piece(piece),
+                m_space(space),
+                m_target_piece(target_piece),
+                m_promotion(promotion),
+                m_castle(castle)
+{
+    // Actions are immutable and the hash will always be used at least once,
+    // so it makes sense to create on initialization
+    m_hash = parent_hash ^ ZOBRIST_HASH_TABLE[space.rank][space.file][HASH_INDICES.at(piece.type)];
+};
+
 void Action::execute()
 {
     // Convert location back from zero-indexed
     auto file = std::string(1, 'a' + char(m_space.file));
     auto rank = m_space.rank + 1;
     m_piece.parent->move(file, rank, m_promotion);
+}
+
+bool operator == (const Action& lhs, const Action& rhs)
+{
+    // The "from" and "to" squares are sufficient to uniquely identify an action
+    return (lhs.m_piece.location == rhs.m_piece.location) && (lhs.m_space == rhs.m_space);
 }
 
 std::ostream &operator<<(std::ostream &os, const Action &rhs)

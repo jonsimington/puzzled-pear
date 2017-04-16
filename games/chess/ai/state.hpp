@@ -46,12 +46,16 @@ public:
 
     bool friend operator==(const State &lhs, const State &rhs);
 
+    long hash() const {return m_hash;}
+
     // Evaluates the strength of the specified player
     // @param player_id : 0 for white
     //                    1 for black
     // @return strength, Higher numbers are better.
     //                   Will never be lower than 0
     int heuristic_eval(int player_id) const;
+
+    bool is_non_quiescent() const;
 
     int get_active_player() const;
 
@@ -85,6 +89,8 @@ private:
 
     void remove_piece(int player_id, const Space& location);
 
+    void recalc_hash();
+
     int m_active_player;
 
     // Arrays of 2 - one for each player
@@ -97,7 +103,8 @@ private:
     // White pieces are uppercase, black pieces are lowercase
     // A null character (0x00) is used for an empty space
     char m_collision_map[8][8];
-};
 
+    long m_hash;
+};
 
 #endif //CPP_CLIENT_STATE_HPP

@@ -8,6 +8,7 @@
 const int WEIGHT_PIECES_OWNED = 25;
 const int WEIGHT_PIECES_CAN_CAPTURE = 3;
 const int WEIGHT_OPPONENT_PIECES = -20;
+const int WEIGHT_PAWN_ADVANCEMENT = 2;
 
 // Values assigned to situations and actions
 const int IN_CHECK_VALUE = 50;
@@ -31,6 +32,13 @@ int State::heuristic_eval(int player_id) const
     for (const auto &piece: m_player_pieces[player_id])
     {
         score += WEIGHT_PIECES_OWNED * PIECE_VALUE.at(piece.type);
+
+        // Try to get pawns staggered off the home row
+        if(piece.type == 'P' && piece.location.file % 2)
+        {
+            int advancement = player_id == 0 ? piece.location.rank - 1 : 6 - piece.location.rank;
+            score += WEIGHT_PAWN_ADVANCEMENT * advancement;
+        }
     }
 
     for (const auto &piece: m_player_pieces[opponent_id])

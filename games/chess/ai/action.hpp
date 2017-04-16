@@ -16,6 +16,7 @@
 
 #include "../../../joueur/src/base_ai.hpp"
 #include "../../../joueur/src/attr_wrapper.hpp"
+#include "zobrist.hpp"
 
 #include <iostream>
 #include <map>
@@ -55,16 +56,11 @@ class Action
 {
 public:
     Action(PieceModel piece,
+           long parent_hash,
            Space space,
            char target_piece = 0,
            std::string promotion = "",
-           castling_status_type castle = CASTLE_NONE)
-        : m_piece(piece),
-          m_space(space),
-          m_target_piece(target_piece),
-          m_promotion(promotion),
-          m_castle(castle)
-    {};
+           castling_status_type castle = CASTLE_NONE);
     PieceModel m_piece;
     Space m_space;
     char m_target_piece; // 0 for none
@@ -73,7 +69,13 @@ public:
 
     void execute();
 
+    long hash() const {return m_hash;}
+
     friend std::ostream &operator<<(std::ostream &os, const Action &rhs);
+
+    friend bool operator == (const Action& lhs, const Action& rhs);
+private:
+    long m_hash;
 };
 
 #endif //CPP_CLIENT_ACTION_HPP_H

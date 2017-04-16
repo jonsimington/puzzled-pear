@@ -2,6 +2,7 @@
 // This is where you build your AI
 
 #include "ai.hpp"
+#include "ai/zobrist.hpp"
 #include "ai/action.hpp"
 #include "ai/state.hpp"
 #include "ai/depth_limited_minimax.hpp"
@@ -36,6 +37,7 @@ void AI::start()
 {
     // This is a good place to initialize any variables
     srand(time(NULL));
+    init_zobrist_hash_table();
 }
 
 /// <summary>
@@ -84,6 +86,7 @@ bool AI::run_turn()
 
     // 4) Run time-limited alpha-beta pruned iterative deepening minimax
     State state(game);
+    AdversarialSearch search;
 
     Action best_action = state.available_actions(state.get_active_player())[0];
     int depth = 1;
@@ -91,7 +94,7 @@ bool AI::run_turn()
     auto end = start;
     std::chrono::duration<double> seconds_elapsed;
     do {
-        best_action = depth_limited_minimax_search(state, depth);
+        best_action = search.depth_limited_minimax_search(state, depth);
         std::cout << "Best action for depth " << depth << " :" << best_action << std::endl;
         end = std::chrono::system_clock::now();
         seconds_elapsed = end-start;
