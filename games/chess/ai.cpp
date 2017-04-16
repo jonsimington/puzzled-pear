@@ -5,7 +5,7 @@
 #include "ai/zobrist.hpp"
 #include "ai/action.hpp"
 #include "ai/state.hpp"
-#include "ai/depth_limited_minimax.hpp"
+#include "ai/adversarialsearch.hpp"
 #include <chrono>
 
 // You can add #includes here for your AI.
@@ -36,7 +36,8 @@ std::string AI::get_name() const
 void AI::start()
 {
     // This is a good place to initialize any variables
-    srand(time(NULL));
+    //srand(time(NULL));
+    srand(0); // Make stuff deterministic for debugging
     init_zobrist_hash_table();
 }
 

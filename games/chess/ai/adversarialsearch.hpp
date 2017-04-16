@@ -3,6 +3,7 @@
 
 #include "state.hpp"
 #include "action.hpp"
+#include "hash.hpp"
 
 using move_val_pair = std::tuple<Action, int>;
 
@@ -28,6 +29,6 @@ public:
     // @pre only called on max player's turn
     int dlmm_maxv(const State &state, int max_player_id, int depth_limit, int alpha, int beta);
 private:
-    //std::unordered_map<Action, int> m_history_table;
+    std::unordered_map<Action, int> m_history_table;
 };
 #endif //CPP_CLIENT_DEPTH_LIMITED_MINIMAX_HPP

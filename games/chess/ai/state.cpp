@@ -135,6 +135,7 @@ State::State(const cpp_client::chess::Game &game)
     }
 
     recalc_hash();
+    m_last_move = {-1, -1};
 }
 
 std::vector<Action> State::available_actions(int player_id) const
@@ -174,16 +175,18 @@ State State::apply(const Action &action) const
 // TODO: Implement caching here for major speedup
 bool State::in_check(int player_id) const
 {
-    auto possible_opponent_actions = all_actions(1 - player_id);
-    bool in_check = false;
-    char king = player_id == 0 ? 'K' : 'k';
-    for (auto &action : possible_opponent_actions) {
-        if (action.m_target_piece == king) {
-            in_check = true;
+    Space king_location = {-1, -1};
+    for(const auto& piece: m_player_pieces[player_id])
+    {
+        if(piece.type == 'K')
+        {
+            king_location = piece.location;
             break;
         }
     }
-    return in_check;
+
+    //assert(king_location.rank != -1);
+    return space_threatened(king_location, 1-player_id);
 }
 
 bool operator==(const State &lhs, const State &rhs)
@@ -477,6 +480,7 @@ void State::mutate(const Action &action)
 
     // Update the hash value because the state has changed
     recalc_hash();
+    m_last_move = {-1, -1};
 }
 
 bool State::is_clear(const Space &space) const
@@ -547,7 +551,77 @@ void State::remove_piece(int player_id, const Space &location)
     }
     assert(piece_taken);
 }
+bool State::space_threatened(Space space, int attacking_player) const
+{
+    char knight_code[] = {'N', 'n'};
+    char pawn_code  [] = {'P', 'p'};
+    char rook_code  [] = {'R', 'r'};
+    char bishop_code[] = {'B', 'b'};
+    char queen_code [] = {'Q', 'q'};
+    char king_code  [] = {'K', 'k'};
 
+    Space PAWN_ATTACKS[2][2] = {
+        {{-1,1}, {-1,-1}},
+        {{ 1,1}, { 1,-1}}
+    };
 
+    for(auto move: KNIGHT_MOVES)
+    {
+        if(piece_at(space + move) == knight_code[attacking_player]) return true;
+    }
 
+    for(auto move: PAWN_ATTACKS[attacking_player])
+    {
+        if(piece_at(space + move) == pawn_code[attacking_player]) return true;
+    }
 
+    for(auto move: BISHOP_MOVES)
+    {
+        auto space_considered = space + move;
+        char s = piece_at(space_considered);
+        if((   s == bishop_code[attacking_player])
+            || s == queen_code[attacking_player]
+            || s == king_code[attacking_player])
+            return true;
+        while(in_board(space_considered))
+        {
+            s = piece_at(space_considered);
+            if((   s == bishop_code[attacking_player])
+                || s == queen_code[attacking_player])
+                return true;
+            if(s != 0) break;
+            space_considered = space_considered + move;
+        }
+    }
+
+    for(auto move: ROOK_MOVES)
+    {
+        auto space_considered = space + move;
+        char s = piece_at(space_considered);
+        if((   s == rook_code[attacking_player])
+            || s == queen_code[attacking_player]
+            || s == king_code[attacking_player])
+            return true;
+        while(in_board(space_considered))
+        {
+            s = piece_at(space_considered);
+            if((   s == rook_code[attacking_player])
+                || s == queen_code[attacking_player])
+                return true;
+            if(s != 0) break;
+            space_considered = space_considered + move;
+        }
+    }
+}
+
+bool State::in_board(Space space) const
+{
+    return ! ((space.rank > 7) or (space.rank < 0)
+           or (space.file > 7) or (space.file < 0));
+}
+
+char State::piece_at(Space space) const
+{
+    if(in_board(space)) return m_collision_map[space.rank][space.file];
+    else                return 0;
+}

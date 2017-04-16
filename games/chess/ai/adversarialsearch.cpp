@@ -2,7 +2,7 @@
 // Created by owen on 3/15/17.
 //
 
-#include "depth_limited_minimax.hpp"
+#include "adversarialsearch.hpp"
 
 #define INT_INFINITY INT32_MAX //Ehh, close enough
 

@@ -89,6 +89,12 @@ private:
 
     void remove_piece(int player_id, const Space& location);
 
+    bool space_threatened(Space space, int attacking_player) const;
+
+    bool in_board(Space) const;
+    // Get type of piece at location, including bounds-checking
+    char piece_at(Space space) const;
+
     void recalc_hash();
 
     int m_active_player;
@@ -105,6 +111,10 @@ private:
     char m_collision_map[8][8];
 
     long m_hash;
+
+    // Last place a piece moved to, used for quiescence checks
+    // Updated during state creation and mutation
+    Space m_last_move;
 };
 
 #endif //CPP_CLIENT_STATE_HPP

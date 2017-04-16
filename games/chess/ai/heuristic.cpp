@@ -72,3 +72,8 @@ int State::heuristic_eval(int player_id) const
 
     return score;
 }
+
+bool State::is_non_quiescent() const
+{
+    return space_threatened(m_last_move, m_active_player);
+}
