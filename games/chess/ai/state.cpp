@@ -142,14 +142,23 @@ std::vector<Action> State::available_actions(int player_id) const {
 
   // filter to actions that don't result in going into check
   for (auto &action : possible_actions) {
-    // Copy board
-    auto new_state = this->apply(action);
-    // Apply action
-    if (new_state.in_check(player_id) == false) {
-      valid_actions.push_back(action);
+    // Castling moves can't take you out of or put you into check
+    if (action.m_piece.type == 'K'
+        && abs(action.m_space.rank - action.m_piece.location.rank) > 1) {
+      if (!in_check(player_id)) {
+        auto new_state = this->apply(action);
+        if (!new_state.in_check(player_id) == false) {
+          valid_actions.push_back(action);
+        }
+        valid_actions.push_back(action);
+      }
 
     } else {
-      //std::cout << "Action " << action << " Discarded because it would put player in check" << std::endl;
+      // Regular, non-castling moves just can't put you into check
+      auto new_state = this->apply(action);
+      if (new_state.in_check(player_id) == false) {
+        valid_actions.push_back(action);
+      }
     }
   }
 
@@ -165,8 +174,6 @@ State State::apply(const Action &action) const {
   return copy;
 }
 
-// Profiling indicates that this is the slowest because it's called constantly
-// TODO: Implement caching here for major speedup
 bool State::in_check(int player_id) const {
   Space king_location = {-1, -1};
   for (const auto &piece: m_player_pieces[player_id]) {
@@ -193,6 +200,7 @@ std::vector<Action> State::all_actions(int player_id) const {
   assert(player_id == 0 or player_id == 1);
 
   std::vector<Action> actions;
+  actions.reserve(40);
 
   // maybe forward[player_id] would be better?
   Space forward = {1, 0};
@@ -266,12 +274,14 @@ std::vector<Action> State::all_actions(int player_id) const {
       //Castling is weird. I'll just hardcode all the locations
       if (m_castling_status[player_id] != CASTLE_NONE) {
         int rank = player_id == 0 ? 0 : 7;
+        char rook_code = player_id == 0 ? 'R' : 'r';
         if (m_castling_status[player_id] == CASTLE_QUEENSIDE
             or m_castling_status[player_id] == CASTLE_BOTH) {
           bool clear_to_castle = true;
           for (int file = 3; file > 0; file--) {
             clear_to_castle &= is_clear(Space{rank, file});
           }
+          if (m_collision_map[rank][0] != rook_code) clear_to_castle = false;
           if (clear_to_castle) {
             actions.push_back(Action(piece, this, {rank, 2}, 0, "", CASTLE_QUEENSIDE));
           }
@@ -282,6 +292,7 @@ std::vector<Action> State::all_actions(int player_id) const {
           for (int file = 5; file < 7; file++) {
             clear_to_castle &= is_clear(Space{rank, file});
           }
+          if (m_collision_map[rank][7] != rook_code) clear_to_castle = false;
           if (clear_to_castle) {
             actions.push_back(Action(piece, this, {rank, 6}, 0, "", CASTLE_KINGSIDE));
           }
@@ -302,7 +313,6 @@ void State::mutate(const Action &action) {
   for(const auto& piece : m_player_pieces[1])
       assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
   */
-
   // Update the board
   int player_id = action.m_piece.parent->owner->id[0] - '0'; // This can be different from current player
   // if we're checking for threatened squares
@@ -378,21 +388,24 @@ void State::mutate(const Action &action) {
     m_collision_map[rook_finish.rank][rook_finish.file] = rook_symbol;
 
     // Update piece in list
+    bool rook_moved = false;
     for (auto &piece : m_player_pieces[player_id]) {
       if (piece.location == rook_start) {
         piece.location = rook_finish;
         assert(piece.type == 'R');
+        rook_moved = true;
         break;
       }
     }
+    assert(rook_moved);
   }
 
   // Debug: Assert loop invariant is satisfied
   /*
   for(const auto& piece : m_player_pieces[0])
-      assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+    assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
   for(const auto& piece : m_player_pieces[1])
-      assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+    assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
   */
 
   // Check if the player can still castle
@@ -440,10 +453,10 @@ void State::mutate(const Action &action) {
 
   // Debug: Assert loop invariant is satisfied
   /*
-  for(const auto& piece : m_player_pieces[0])
-      assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
-  for(const auto& piece : m_player_pieces[1])
-      assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+  for (const auto &piece : m_player_pieces[0])
+    assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
+  for (const auto &piece : m_player_pieces[1])
+    assert(toupper(m_collision_map[piece.location.rank][piece.location.file]) == piece.type);
   */
   // Swap active player
   m_active_player = (m_active_player == 0 ? 1 : 0);
@@ -568,6 +581,8 @@ bool State::space_threatened(Space space, int attacking_player) const {
       space_considered = space_considered + move;
     }
   }
+
+  return false;
 }
 
 bool State::in_board(Space space) const {
