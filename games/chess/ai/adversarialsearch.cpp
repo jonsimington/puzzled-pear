@@ -6,7 +6,7 @@
 
 #define INT_INFINITY INT32_MAX //Ehh, close enough
 
-Action AdversarialSearch::depth_limited_minimax_search(const State &state, int depth_limit)
+Action AdversarialSearch::depth_limited_minimax_search(const State &state, int depth_limit, int quiescence_limit)
 {
     int active_player = state.get_active_player();
     auto actions = state.available_actions(active_player);
@@ -22,6 +22,7 @@ Action AdversarialSearch::depth_limited_minimax_search(const State &state, int d
         scores[i] = dlmm_minv(state.apply(actions[i]),
                               active_player,
                               depth_limit - 1,
+                              quiescence_limit,
                               alpha,
                               beta);
         if (scores[i] > alpha)
@@ -53,13 +54,20 @@ Action AdversarialSearch::depth_limited_minimax_search(const State &state, int d
     return (actions[best_action_index]);
 }
 
-int AdversarialSearch::dlmm_minv(const State &state, int max_player_id, int depth_limit, int alpha, int beta)
+int AdversarialSearch::dlmm_minv(const State &state, int max_player_id, int depth_limit, int quiescence_limit, int alpha, int beta)
 {
     assert(state.get_active_player() != max_player_id);
+    bool quiescent_search = false;
 
     if (depth_limit <= 0)
     {
-        return state.heuristic_eval(max_player_id);
+        if(quiescence_limit > 0 && state.is_non_quiescent())
+        {
+            quiescent_search = true;
+        } else
+        {
+            return state.heuristic_eval(max_player_id);
+        }
     }
 
     auto actions = state.available_actions(state.get_active_player());
@@ -71,7 +79,14 @@ int AdversarialSearch::dlmm_minv(const State &state, int max_player_id, int dept
     int best_action_score = INT_INFINITY; //Trying to minimize, so start out with +inf and reduce
     for (const auto &action : actions)
     {
-        int score = dlmm_maxv(state.apply(action), max_player_id, depth_limit - 1, alpha, beta);
+        int score;
+        if(quiescent_search)
+        {
+            score = dlmm_maxv(state.apply(action), max_player_id, depth_limit, quiescence_limit -1, alpha, beta);
+        } else
+        {
+            score = dlmm_maxv(state.apply(action), max_player_id, depth_limit - 1, quiescence_limit, alpha, beta);
+        }
 
         // Check for a fail-low
         if (score <= alpha)
@@ -93,13 +108,20 @@ int AdversarialSearch::dlmm_minv(const State &state, int max_player_id, int dept
     return best_action_score;
 }
 
-int AdversarialSearch::dlmm_maxv(const State &state, int max_player_id, int depth_limit, int alpha, int beta)
+int AdversarialSearch::dlmm_maxv(const State &state, int max_player_id, int depth_limit, int quiescence_limit, int alpha, int beta)
 {
     assert(state.get_active_player() == max_player_id);
+    bool quiescent_search = false;
 
     if (depth_limit <= 0)
     {
-        return state.heuristic_eval(max_player_id);
+        if(quiescence_limit > 0 && state.is_non_quiescent())
+        {
+            quiescent_search = true;
+        } else
+        {
+            return state.heuristic_eval(max_player_id);
+        }
     }
 
     auto actions = state.available_actions(state.get_active_player());
@@ -111,7 +133,14 @@ int AdversarialSearch::dlmm_maxv(const State &state, int max_player_id, int dept
     int best_action_score = -INT_INFINITY;
     for (const auto &action : actions)
     {
-        int score = dlmm_minv(state.apply(action), max_player_id, depth_limit - 1, alpha, beta);
+        int score;
+        if(quiescent_search)
+        {
+            score = dlmm_minv(state.apply(action), max_player_id, depth_limit, quiescence_limit -1, alpha, beta);
+        } else
+        {
+            score = dlmm_minv(state.apply(action), max_player_id, depth_limit - 1, quiescence_limit, alpha, beta);
+        }
 
         // Check for fail-high
         if (score >= beta)

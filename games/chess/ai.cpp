@@ -11,6 +11,7 @@
 // You can add #includes here for your AI.
 
 const double MAX_COMPUTATION_TIME = 2.00; // Seconds
+const int    QUIESCENCE_LIMIT = 3;        // Moves deep
 
 namespace cpp_client
 {
@@ -36,8 +37,7 @@ std::string AI::get_name() const
 void AI::start()
 {
     // This is a good place to initialize any variables
-    //srand(time(NULL));
-    srand(0); // Make stuff deterministic for debugging
+    srand(time(NULL));
     init_zobrist_hash_table();
 }
 
@@ -95,7 +95,7 @@ bool AI::run_turn()
     auto end = start;
     std::chrono::duration<double> seconds_elapsed;
     do {
-        best_action = search.depth_limited_minimax_search(state, depth);
+        best_action = search.depth_limited_minimax_search(state, depth, QUIESCENCE_LIMIT);
         std::cout << "Best action for depth " << depth << " :" << best_action << std::endl;
         end = std::chrono::system_clock::now();
         seconds_elapsed = end-start;
