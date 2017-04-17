@@ -1,7 +1,5 @@
-//
-// Created by owen on 4/16/17.
-//
-
+// Headers for zobrist hash algorithms
+// implementation in hash.hpp and hash.cpp
 #ifndef CPP_CLIENT_ZOBRIST_HPP
 #define CPP_CLIENT_ZOBRIST_HPP
 
