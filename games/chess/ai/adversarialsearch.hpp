@@ -30,5 +30,7 @@ public:
     int dlmm_maxv(const State &state, int max_player_id, int depth_limit, int quiescence_limit, int alpha, int beta);
 private:
     std::unordered_map<Action, int> m_history_table;
+    std::vector<Action> history_table_sort(const std::vector<Action>& actions) const;
+    void history_table_update(const Action& action);
 };
 #endif //CPP_CLIENT_DEPTH_LIMITED_MINIMAX_HPP

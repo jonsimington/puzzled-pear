@@ -40,6 +40,8 @@ struct Space
     int file;
 };
 
+extern const Space INVALID_SPACE;
+
 Space operator+(const Space &lhs, const Space &rhs);
 
 bool operator==(const Space &lhs, const Space &rhs);
@@ -48,6 +50,7 @@ class PieceModel
 {
 public:
     PieceModel(cpp_client::chess::Piece piece);
+    PieceModel() : parent(NULL), type(0), location(INVALID_SPACE) {};
 
     cpp_client::chess::Piece_* parent;
     char type; // Always an uppercase one character piece code
@@ -62,7 +65,14 @@ public:
            Space space,
            char target_piece = 0,
            std::string promotion = "",
-           castling_status_type castle = CASTLE_NONE);
+           castling_status_type castle = CASTLE_NONE)
+        : m_piece(piece),
+          m_parent(parent),
+          m_space(space),
+          m_target_piece(target_piece),
+          m_promotion(promotion),
+          m_castle(castle) {};
+    Action() : m_piece(), m_parent(NULL), m_space(INVALID_SPACE), m_target_piece(0), m_promotion(""), m_castle(CASTLE_NONE) {};
     PieceModel m_piece;
     Space m_space;
     char m_target_piece; // 0 for none

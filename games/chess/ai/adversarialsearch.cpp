@@ -2,15 +2,18 @@
 // Created by owen on 3/15/17.
 //
 
+#include <algorithm>
 #include "adversarialsearch.hpp"
 
 #define INT_INFINITY INT32_MAX //Ehh, close enough
+
+using tuple = std::pair<int, int>;
 
 Action AdversarialSearch::depth_limited_minimax_search(const State &state, int depth_limit, int quiescence_limit)
 {
     int active_player = state.get_active_player();
     auto actions = state.available_actions(active_player);
-
+    actions = history_table_sort(actions);
     assert(actions.size() > 0);
     std::cout << "Available actions: " << actions.size() << "\nActions Explored: " << std::flush;
     std::vector<int> scores(actions.size());
@@ -49,14 +52,7 @@ Action AdversarialSearch::depth_limited_minimax_search(const State &state, int d
         // generated actions instead of being completely fair.
         // TODO: Check this out.
     }
-    auto it = m_history_table.find(actions[best_action_index]);
-    if(it != m_history_table.end())
-    {
-        it->second ++;
-    } else
-    {
-        m_history_table.insert(std::make_pair(actions[best_action_index], 1));
-    }
+    history_table_update(actions[best_action_index]);
     //assert(action_picked); This was triggering when checkmate was assured, so temporarily disabled
     std::cout << std::endl;
     return (actions[best_action_index]);
@@ -79,6 +75,7 @@ int AdversarialSearch::dlmm_minv(const State &state, int max_player_id, int dept
     }
 
     auto actions = state.available_actions(state.get_active_player());
+    actions = history_table_sort(actions);
     // Check for terminal state
     if (actions.size() <= 0)
     {
@@ -114,15 +111,7 @@ int AdversarialSearch::dlmm_minv(const State &state, int max_player_id, int dept
         }
         //assert(best_action_score < INT_INFINITY);
     }
-    // Update the history table
-    auto it = m_history_table.find(actions[best_action_index]);
-    if(it != m_history_table.end())
-    {
-        it->second ++;
-    } else
-    {
-        m_history_table.insert(std::make_pair(actions[best_action_index], 1));
-    }
+    history_table_update(actions[best_action_index]);
     return best_action_score;
 }
 
@@ -143,6 +132,7 @@ int AdversarialSearch::dlmm_maxv(const State &state, int max_player_id, int dept
     }
 
     auto actions = state.available_actions(state.get_active_player());
+    actions = history_table_sort(actions);
     if (actions.size() <= 0)
     {
         return -INT_INFINITY; // CHECKMATE! Loss.
@@ -178,13 +168,47 @@ int AdversarialSearch::dlmm_maxv(const State &state, int max_player_id, int dept
         }
         //assert(best_action_score > -INT_INFINITY);
     }
-    auto it = m_history_table.find(actions[best_action_index]);
+    history_table_update(actions[best_action_index]);
+    return best_action_score;
+}
+
+std::vector<Action> AdversarialSearch::history_table_sort(const std::vector<Action>& actions) const
+{
+    // tuples contain <occurrence frequency, action index>
+    // We load the frequency in, then sort them together
+    std::vector<tuple> scores(actions.size());
+    std::vector<Action> results(actions.size());
+    for(int i = 0; i < actions.size(); i++)
+    {
+        scores[i].second = i;
+        auto it = m_history_table.find(actions[i]);
+        if(it != m_history_table.end())
+        {
+            scores[i].first = it->second; //Load the
+        }
+        else{
+            scores[i].first = 0;
+        }
+    }
+
+    std::sort(scores.begin(), scores.end());
+
+    for(int i = 0; i < actions.size(); i++)
+    {
+        results[i] = actions[scores[i].second];
+    }
+    return results;
+}
+
+void AdversarialSearch::history_table_update(const Action &action)
+{
+    auto it = m_history_table.find(action);
     if(it != m_history_table.end())
     {
         it->second ++;
     } else
     {
-        m_history_table.insert(std::make_pair(actions[best_action_index], 1));
+        m_history_table.insert(std::make_pair(action, 1));
     }
-    return best_action_score;
 }
+

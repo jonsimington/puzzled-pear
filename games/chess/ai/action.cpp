@@ -16,23 +16,7 @@ std::map<std::string, char> PIECE_CODE_LOOKUP{
     {"King", 'K'}
 };
 
-Action::Action(PieceModel piece,
-                const State* parent,
-                Space space,
-                char target_piece,
-                std::string promotion,
-                castling_status_type castle)
-                : m_piece(piece),
-                  m_parent(parent),
-                m_space(space),
-                m_target_piece(target_piece),
-                m_promotion(promotion),
-                m_castle(castle)
-{
-    // Actions are immutable and the hash will always be used at least once,
-    // so it makes sense to create on initialization
-    //m_hash = parent_hash ^ ZOBRIST_HASH_TABLE[space.rank][space.file][HASH_INDICES.at(piece.type)];
-};
+const Space INVALID_SPACE = {-1, -1};
 
 void Action::execute()
 {
