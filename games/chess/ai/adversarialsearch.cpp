@@ -49,6 +49,14 @@ Action AdversarialSearch::depth_limited_minimax_search(const State &state, int d
         // generated actions instead of being completely fair.
         // TODO: Check this out.
     }
+    auto it = m_history_table.find(actions[best_action_index]);
+    if(it != m_history_table.end())
+    {
+        it->second ++;
+    } else
+    {
+        m_history_table.insert(std::make_pair(actions[best_action_index], 1));
+    }
     //assert(action_picked); This was triggering when checkmate was assured, so temporarily disabled
     std::cout << std::endl;
     return (actions[best_action_index]);
@@ -76,16 +84,16 @@ int AdversarialSearch::dlmm_minv(const State &state, int max_player_id, int dept
     {
         return INT_INFINITY; // CHECKMATE! Victory.
     }
-    int best_action_score = INT_INFINITY; //Trying to minimize, so start out with +inf and reduce
-    for (const auto &action : actions)
+    int best_action_score = INT_INFINITY, best_action_index = 0; //Trying to minimize, so start out with +inf and reduce
+    for (int i = 0; i < actions.size(); i++)
     {
         int score;
         if(quiescent_search)
         {
-            score = dlmm_maxv(state.apply(action), max_player_id, depth_limit, quiescence_limit -1, alpha, beta);
+            score = dlmm_maxv(state.apply(actions[i]), max_player_id, depth_limit, quiescence_limit -1, alpha, beta);
         } else
         {
-            score = dlmm_maxv(state.apply(action), max_player_id, depth_limit - 1, quiescence_limit, alpha, beta);
+            score = dlmm_maxv(state.apply(actions[i]), max_player_id, depth_limit - 1, quiescence_limit, alpha, beta);
         }
 
         // Check for a fail-low
@@ -102,8 +110,18 @@ int AdversarialSearch::dlmm_minv(const State &state, int max_player_id, int dept
                 && (random() % 2 == 0)))
         {
             best_action_score = score;
+            best_action_index = i;
         }
         //assert(best_action_score < INT_INFINITY);
+    }
+    // Update the history table
+    auto it = m_history_table.find(actions[best_action_index]);
+    if(it != m_history_table.end())
+    {
+        it->second ++;
+    } else
+    {
+        m_history_table.insert(std::make_pair(actions[best_action_index], 1));
     }
     return best_action_score;
 }
@@ -130,16 +148,16 @@ int AdversarialSearch::dlmm_maxv(const State &state, int max_player_id, int dept
         return -INT_INFINITY; // CHECKMATE! Loss.
     }
 
-    int best_action_score = -INT_INFINITY;
-    for (const auto &action : actions)
+    int best_action_score = -INT_INFINITY, best_action_index = 0;
+    for (int i = 0; i < actions.size(); i++)
     {
         int score;
         if(quiescent_search)
         {
-            score = dlmm_minv(state.apply(action), max_player_id, depth_limit, quiescence_limit -1, alpha, beta);
+            score = dlmm_minv(state.apply(actions[i]), max_player_id, depth_limit, quiescence_limit -1, alpha, beta);
         } else
         {
-            score = dlmm_minv(state.apply(action), max_player_id, depth_limit - 1, quiescence_limit, alpha, beta);
+            score = dlmm_minv(state.apply(actions[i]), max_player_id, depth_limit - 1, quiescence_limit, alpha, beta);
         }
 
         // Check for fail-high
@@ -156,8 +174,17 @@ int AdversarialSearch::dlmm_maxv(const State &state, int max_player_id, int dept
                 && (random() % 2 == 0)))
         {
             best_action_score = score;
+            best_action_index = i;
         }
         //assert(best_action_score > -INT_INFINITY);
+    }
+    auto it = m_history_table.find(actions[best_action_index]);
+    if(it != m_history_table.end())
+    {
+        it->second ++;
+    } else
+    {
+        m_history_table.insert(std::make_pair(actions[best_action_index], 1));
     }
     return best_action_score;
 }
