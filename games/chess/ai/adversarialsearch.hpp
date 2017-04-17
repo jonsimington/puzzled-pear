@@ -9,7 +9,7 @@ using move_val_pair = std::tuple<Action, int>;
 
 class AdversarialSearch {
  public:
-  AdversarialSearch() {};
+  AdversarialSearch(std::unordered_map<Action, int>* history_table) : m_history_table(history_table) {};
 
   // Returns the best action for the active player
   Action depth_limited_minimax_search(const State &state, int depth_limit, int quiescence_limit);
@@ -28,7 +28,7 @@ class AdversarialSearch {
   // @pre only called on max player's turn
   int dlmm_maxv(const State &state, int max_player_id, int depth_limit, int quiescence_limit, int alpha, int beta);
  private:
-  std::unordered_map<Action, int> m_history_table;
+  std::unordered_map<Action, int>* m_history_table;
   std::vector<Action> history_table_sort(const std::vector<Action> &actions) const;
   void history_table_update(const Action &action);
 };

@@ -11,8 +11,8 @@
 // You can add #includes here for your AI.
 
 const double MAX_COMPUTATION_TIME = 2.00; // Seconds
-const int    QUIESCENCE_LIMIT = 3;        // Moves deep
-
+const int    QUIESCENCE_LIMIT = 2;        // Moves deep
+std::unordered_map<Action, int> global_history_table;
 namespace cpp_client
 {
 
@@ -87,7 +87,7 @@ bool AI::run_turn()
 
     // 4) Run time-limited alpha-beta pruned iterative deepening minimax
     State state(game);
-    AdversarialSearch search;
+    AdversarialSearch search(&global_history_table);
 
     Action best_action = state.available_actions(state.get_active_player())[0];
     int depth = 1;

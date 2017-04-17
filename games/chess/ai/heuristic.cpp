@@ -13,6 +13,8 @@ const int WEIGHT_PAWN_ADVANCEMENT = 2;
 // Values assigned to situations and actions
 const int IN_CHECK_VALUE = 50;
 
+
+
 const std::map<char, int> PIECE_VALUE{
     {'P', 1},
     {'R', 5},

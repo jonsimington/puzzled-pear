@@ -162,8 +162,8 @@ std::vector<Action> AdversarialSearch::history_table_sort(const std::vector<Acti
   std::vector<Action> results(actions.size());
   for (int i = 0; i < actions.size(); i++) {
     scores[i].second = i;
-    auto it = m_history_table.find(actions[i]);
-    if (it != m_history_table.end()) {
+    auto it = m_history_table->find(actions[i]);
+    if (it != m_history_table->end()) {
       scores[i].first = it->second; //Load the
     } else {
       scores[i].first = 0;
@@ -179,11 +179,11 @@ std::vector<Action> AdversarialSearch::history_table_sort(const std::vector<Acti
 }
 
 void AdversarialSearch::history_table_update(const Action &action) {
-  auto it = m_history_table.find(action);
-  if (it != m_history_table.end()) {
+  auto it = m_history_table->find(action);
+  if (it != m_history_table->end()) {
     it->second++;
   } else {
-    m_history_table.insert(std::make_pair(action, 1));
+    m_history_table->insert(std::make_pair(action, 1));
   }
 }
 
