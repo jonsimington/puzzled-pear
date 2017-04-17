@@ -14,7 +14,6 @@ Action AdversarialSearch::depth_limited_minimax_search(const State &state, int d
   auto actions = state.available_actions(active_player);
   actions = history_table_sort(actions);
   assert(actions.size() > 0);
-  std::cout << "Available actions: " << actions.size() << "\nActions Explored: " << std::flush;
   std::vector<int> scores(actions.size());
   int alpha = -INT_INFINITY;
   int beta = INT_INFINITY;
@@ -49,7 +48,6 @@ Action AdversarialSearch::depth_limited_minimax_search(const State &state, int d
   }
   history_table_update(actions[best_action_index]);
   //assert(action_picked); This was triggering when checkmate was assured, so temporarily disabled
-  std::cout << std::endl;
   return (actions[best_action_index]);
 }
 

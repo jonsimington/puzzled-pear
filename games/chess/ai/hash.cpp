@@ -18,7 +18,7 @@ const std::map<char, int> HASH_INDICES{
 // Global hash table. Must be initialized with init_zobrist_hash_table
 long ZOBRIST_HASH_TABLE[8][8][12];
 
-long init_zobrist_hash_table() {
+void init_zobrist_hash_table() {
   for (int i = 0; i < 8; i++) {
     for (int j = 0; j < 8; j++) {
       for (int k = 0; k < 12; k++) {

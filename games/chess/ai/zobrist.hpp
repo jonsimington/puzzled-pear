@@ -9,6 +9,6 @@ extern long ZOBRIST_HASH_TABLE[8][8][12];
 
 extern const std::map<char, int> HASH_INDICES;
 
-long init_zobrist_hash_table();
+void init_zobrist_hash_table();
 
 #endif //CPP_CLIENT_ZOBRIST_HPP
