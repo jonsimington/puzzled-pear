@@ -32,4 +32,5 @@ class AdversarialSearch {
   std::vector<Action> history_table_sort(const std::vector<Action> &actions) const;
   void history_table_update(const Action &action);
 };
+
 #endif //CPP_CLIENT_DEPTH_LIMITED_MINIMAX_HPP

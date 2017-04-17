@@ -47,6 +47,7 @@ bool operator==(const Space &lhs, const Space &rhs);
 class PieceModel {
  public:
   PieceModel(cpp_client::chess::Piece piece);
+
   PieceModel() : parent(NULL), type(0), location(INVALID_SPACE) {};
 
   cpp_client::chess::Piece_ *parent;
@@ -68,6 +69,7 @@ class Action {
         m_target_piece(target_piece),
         m_promotion(promotion),
         m_castle(castle) {};
+
   Action()
       : m_piece(), m_parent(NULL), m_space(INVALID_SPACE), m_target_piece(0), m_promotion(""), m_castle(CASTLE_NONE) {};
   PieceModel m_piece;

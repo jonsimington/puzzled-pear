@@ -188,6 +188,7 @@ bool operator==(const State &lhs, const State &rhs) {
   }
   return true;
 }
+
 std::vector<Action> State::all_actions(int player_id) const {
   assert(player_id == 0 or player_id == 1);
 
@@ -473,7 +474,6 @@ bool State::has_opponent_piece(Space space, int player_id) const {
       return (('A' <= piece_code) and (piece_code <= 'Z'));
     }
   }
-
 }
 
 void State::straight_line_moves(const PieceModel &piece, std::vector<Space> directions, int player_id,
@@ -490,9 +490,11 @@ void State::straight_line_moves(const PieceModel &piece, std::vector<Space> dire
     }
   }
 }
+
 int State::get_active_player() const {
   return m_active_player;
 }
+
 void State::remove_piece(int player_id, const Space &location) {
   // If the move takes a piece, delete it from the list
   // The collision map doesn't store links,
@@ -511,6 +513,7 @@ void State::remove_piece(int player_id, const Space &location) {
   }
   assert(piece_taken);
 }
+
 bool State::space_threatened(Space space, int attacking_player) const {
   char knight_code[] = {'N', 'n'};
   char pawn_code[] = {'P', 'p'};

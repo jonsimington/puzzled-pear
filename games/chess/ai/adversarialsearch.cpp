@@ -170,7 +170,7 @@ std::vector<Action> AdversarialSearch::history_table_sort(const std::vector<Acti
     }
   }
 
-  std::sort(scores.begin(), scores.end());
+  std::sort(scores.rbegin(), scores.rend());
 
   for (int i = 0; i < actions.size(); i++) {
     results[i] = actions[scores[i].second];
