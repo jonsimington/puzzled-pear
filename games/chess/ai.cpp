@@ -10,7 +10,7 @@
 
 // You can add #includes here for your AI.
 
-const double MAX_COMPUTATION_TIME = 0.750; // Seconds
+const double MAX_COMPUTATION_TIME = 5.00; // Seconds
 const int    QUIESCENCE_LIMIT = 2;        // Moves deep
 std::unordered_map<Action, int> global_history_table;
 namespace cpp_client
@@ -37,8 +37,8 @@ std::string AI::get_name() const
 void AI::start()
 {
     // This is a good place to initialize any variables
-    //srand(time(NULL));
-    srand(12345678);
+    srand(time(NULL));
+    //srand(12345678);
     init_zobrist_hash_table();
 }
 
