@@ -10,7 +10,7 @@
 
 // You can add #includes here for your AI.
 
-const double MAX_COMPUTATION_TIME = 5.00; // Seconds
+const double MAX_COMPUTATION_TIME = 1.00; // Seconds
 const int    QUIESCENCE_LIMIT = 2;        // Moves deep
 std::unordered_map<Action, int> global_history_table;
 namespace cpp_client
