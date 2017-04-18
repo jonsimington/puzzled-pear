@@ -8,6 +8,7 @@
 #define INT_INFINITY INT32_MAX //Ehh, close enough
 
 using tuple = std::pair<int, int>;
+const int CHECKMATE_BASE_VAL = INT_INFINITY - 50; // Give some wiggle room for delay prevention
 
 Action AdversarialSearch::depth_limited_minimax_search(const State &state, int depth_limit, int quiescence_limit) {
   int active_player = state.get_active_player();
@@ -72,7 +73,8 @@ int AdversarialSearch::dlmm_minv(const State &state,
   actions = history_table_sort(actions);
   // Check for terminal state
   if (actions.size() <= 0) {
-    return INT_INFINITY; // CHECKMATE! Victory.
+    int remaining_depth = depth_limit + quiescence_limit;
+    return CHECKMATE_BASE_VAL + remaining_depth; // CHECKMATE! Victory. Earlier checkmates are better, so prefer those
   }
   int best_action_score = INT_INFINITY, best_action_index = 0; //Trying to minimize, so start out with +inf and reduce
   for (int i = 0; i < actions.size(); i++) {
@@ -85,6 +87,7 @@ int AdversarialSearch::dlmm_minv(const State &state,
 
     // Check for a fail-low
     if (score <= alpha) {
+      history_table_update(actions[i]);
       return score;
     }
     if (score < beta) {
@@ -136,6 +139,7 @@ int AdversarialSearch::dlmm_maxv(const State &state,
 
     // Check for fail-high
     if (score >= beta) {
+      history_table_update(actions[i]);
       return score;
     }
     if (score > alpha) {
