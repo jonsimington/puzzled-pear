@@ -64,7 +64,7 @@ int AdversarialSearch::dlmm_minv(const State &state,
     if (quiescence_limit > 0 && state.is_non_quiescent()) {
       quiescent_search = true;
     } else {
-      return state.heuristic_eval(max_player_id);
+      return transposition_table_heuristic(state, max_player_id);
     }
   }
 
@@ -115,7 +115,7 @@ int AdversarialSearch::dlmm_maxv(const State &state,
     if (quiescence_limit > 0 && state.is_non_quiescent()) {
       quiescent_search = true;
     } else {
-      return state.heuristic_eval(max_player_id);
+      return transposition_table_heuristic(state, max_player_id);
     }
   }
 
@@ -185,3 +185,14 @@ void AdversarialSearch::history_table_update(const Action &action) {
   }
 }
 
+int AdversarialSearch::transposition_table_heuristic(const State &state, int max_player_id) {
+
+  auto it = m_transposition_table->find(state.hash());
+  if (it != m_transposition_table->end()) {
+    return it->second;
+  } else {
+    int heuristic_val = state.heuristic_eval(max_player_id);
+    m_transposition_table->insert(std::make_pair(state.hash(), heuristic_val));
+    return heuristic_val;
+  }
+}

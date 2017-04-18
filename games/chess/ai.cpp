@@ -13,6 +13,7 @@
 const double MAX_COMPUTATION_TIME = 1.00; // Seconds
 const int    QUIESCENCE_LIMIT = 2;        // Moves deep
 std::unordered_map<Action, int> global_history_table;
+std::unordered_map<long, int> global_transposition_table;
 namespace cpp_client
 {
 
@@ -37,8 +38,8 @@ std::string AI::get_name() const
 void AI::start()
 {
     // This is a good place to initialize any variables
-    srand(time(NULL));
-    //srand(12345678);
+    //srand(time(NULL));
+    srand(0);
     init_zobrist_hash_table();
 }
 
@@ -88,7 +89,7 @@ bool AI::run_turn()
 
     // 4) Run time-limited alpha-beta pruned iterative deepening minimax
     State state(game);
-    AdversarialSearch search(&global_history_table);
+    AdversarialSearch search(&global_history_table, &global_transposition_table);
 
     Action best_action = state.available_actions(state.get_active_player())[0];
     int depth = 1;
