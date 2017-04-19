@@ -9,6 +9,7 @@ const int WEIGHT_PIECES_OWNED = 25;
 const int WEIGHT_PIECES_CAN_CAPTURE = 3;
 const int WEIGHT_OPPONENT_PIECES = -20;
 const int WEIGHT_PAWN_ADVANCEMENT = 2;
+const int WEIGHT_GUARD_OWN_PIECES = 5;
 
 // Values assigned to situations and actions
 const int IN_CHECK_VALUE = 50;
@@ -35,6 +36,11 @@ int State::heuristic_eval(int player_id) const {
   for (const auto &piece: m_player_pieces[player_id]) {
     score += WEIGHT_PIECES_OWNED * PIECE_VALUE.at(piece.type);
 
+    // Encourage pieces to guard other pieces
+    if (space_threatened(piece.location, player_id)) {
+      score += WEIGHT_GUARD_OWN_PIECES * PIECE_VALUE.at(piece.type);
+    }
+
     // Try to get pawns staggered off the home row
     if (piece.type == 'P' && piece.location.file % 2) {
       int advancement = player_id == 0 ? piece.location.rank - 1 : 6 - piece.location.rank;
@@ -46,28 +52,12 @@ int State::heuristic_eval(int player_id) const {
     score += WEIGHT_OPPONENT_PIECES * PIECE_VALUE.at(piece.type);
   }
 
-  // As it turns out, this is very, very expensive
   // Add pieces threatened by the player
-
-  for (const auto &action : this->available_actions(player_id)) {
-    if (action.m_target_piece != 0) {
-      char piece_type = (char) toupper(action.m_target_piece);
-      score += WEIGHT_PIECES_CAN_CAPTURE * PIECE_VALUE.at(piece_type);
+  for (const auto &piece : m_player_pieces[opponent_id]) {
+    if (space_threatened(piece.location, player_id)) {
+      score += WEIGHT_PIECES_CAN_CAPTURE * PIECE_VALUE.at(piece.type);
     }
   }
-
-  /*
-  // Being in check is bad. Putting the other player in check is good.
-  if (in_check(player_id))
-  {
-      score -= IN_CHECK_VALUE;
-  }
-
-  if (in_check(opponent_id))
-  {
-      score += IN_CHECK_VALUE;
-  }
-   */
 
   return score;
 }
