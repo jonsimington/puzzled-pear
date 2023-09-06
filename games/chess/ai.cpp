@@ -28,7 +28,7 @@ namespace chess
 std::string AI::get_name() const
 {
     // REPLACE WITH YOUR TEAM NAME!
-    return "owen-chiaventone";
+    return "Puzzled Pear";
     // Can I rename this to "Check yourself before you rook yourself?"
 }
 
